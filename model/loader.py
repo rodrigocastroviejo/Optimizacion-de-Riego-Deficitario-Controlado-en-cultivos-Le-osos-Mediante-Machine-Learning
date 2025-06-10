@@ -23,9 +23,6 @@ df_datos_suelo1 = pd.read_csv(
     dayfirst=True  
 )
 
-# Convertir la columna 'hour' a tipo datetime combinándola con 'date'
-#df_datos_suelo1['datetime'] = pd.to_datetime(df_datos_suelo1['date']) + pd.to_timedelta(df_datos_suelo1['hour'], unit='h')
-
 df_datos_suelo2 = pd.read_csv(
     'data/Mini2_OUT.csv',
     sep=';',                    # Delimitador de columnas
@@ -35,8 +32,6 @@ df_datos_suelo2 = pd.read_csv(
     dayfirst=True  
 )
 
-# Convertir la columna 'hour' a tipo datetime combinándola con 'date'
-#df_datos_suelo2['datetime'] = pd.to_datetime(df_datos_suelo2['date']) + pd.to_timedelta(df_datos_suelo2['hour'], unit='h')
 
 df_riego = pd.read_csv(
     'data/RIEGOS ALMENDRO2024.csv',
@@ -46,25 +41,28 @@ df_riego = pd.read_csv(
     parse_dates=['Inicio', 'Fin'], # Convierte estas columnas a datetime
     dayfirst=True,                # Formato de fecha día/mes/año
     dtype={
-        'Programa': 'int',
-        'Nombre': 'str',
         'Activación': 'int',
         'Duración': 'str',       # Lo convertiremos después a timedelta
         'Agua m³': 'float',
-        'Abono 1 L': 'float',
-        'Abono 2 L': 'float',
-        'Abono 3 L': 'float',
-        'Abono 4 L': 'float',
         'Tipo': 'str',
         'Sectores de Riego': 'int'
     }
 )
 
+
+
 # Convertir la columna 'Duración' a timedelta
 df_riego['Duración'] = pd.to_timedelta(df_riego['Duración'])
-# Eliminar columna nombre, ya que indica lo mismo que la columna programa, pero en un formato mas complicado de procesar
-df_riego.drop('Nombre', axis=1, inplace=True)
 
+"""
+    Eliminamos columna nombre y programa, ya que indican lo mismo que la columna sector, pero en un formato mas complicado de procesar o se repite
+    Eliminamos Abono XL, porque no vamos a tener en cuenta esta variabble en nuestro estudiol
+"""
+df_riego.drop(columns=['Programa', 'Nombre', 'Abono 1 L', 'Abono 2 L', 'Abono 3 L', 'Abono 4 L'], inplace=True)
+
+# Eliminamos hora de la fecha, ya que por la granularidad que vamos usar a la hora de analizar los datos, es irrelevante
+df_riego['Inicio'] = df_riego['Inicio'].dt.normalize()  
+df_riego['Fin'] = df_riego['Fin'].dt.normalize()  
 
 """
     El objetivo es juntar todos los datos de entrenamiento (X), los cuales estan en los DF: df_datos_suelo1, df_datos_suelo2, df_clima.
@@ -75,3 +73,8 @@ df_riego.drop('Nombre', axis=1, inplace=True)
 """
 X_datos_suelo1 = pd.merge(df_datos_suelo1, df_clima)
 X_datos_suelo2 = pd.merge(df_datos_suelo2, df_clima)
+
+# Lo convertimos a dateTime para poder usarlos en graficos 
+X_datos_suelo1['date'] = pd.to_datetime(X_datos_suelo1['date'])
+X_datos_suelo2['date'] = pd.to_datetime(X_datos_suelo2['date'])
+
