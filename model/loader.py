@@ -60,9 +60,6 @@ df_riego['Duración'] = pd.to_timedelta(df_riego['Duración'])
 """
 df_riego.drop(columns=['Programa', 'Nombre', 'Abono 1 L', 'Abono 2 L', 'Abono 3 L', 'Abono 4 L'], inplace=True)
 
-# Eliminamos hora de la fecha, ya que por la granularidad que vamos usar a la hora de analizar los datos, es irrelevante
-df_riego['Inicio'] = df_riego['Inicio'].dt.normalize()  
-df_riego['Fin'] = df_riego['Fin'].dt.normalize()  
 
 """
     El objetivo es juntar todos los datos de entrenamiento (X), los cuales estan en los DF: df_datos_suelo1, df_datos_suelo2, df_clima.
