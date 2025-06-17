@@ -23,6 +23,8 @@ df_datos_suelo1 = pd.read_csv(
     dayfirst=True  
 )
 
+#df_datos_suelo1.drop(columns=['Direccion del viento', 'Presión atmosférica', 'Índice de calor', 'Agua útil'], inplace=True)
+
 df_datos_suelo2 = pd.read_csv(
     'data/Mini2_OUT.csv',
     sep=';',                    # Delimitador de columnas
@@ -58,9 +60,10 @@ df_riego['Duración'] = pd.to_timedelta(df_riego['Duración'])
     Eliminamos columna nombre y programa, ya que indican lo mismo que la columna sector, pero en un formato mas complicado de procesar o se repite
     Eliminamos Abono XL, porque no vamos a tener en cuenta esta variabble en nuestro estudiol
 """
-df_riego.drop(columns=['Programa', 'Nombre', 'Abono 1 L', 'Abono 2 L', 'Abono 3 L', 'Abono 4 L'], inplace=True)
+df_riego.drop(columns=['Programa', 'Nombre', 'Abono 1 L', 'Abono 2 L', 'Abono 3 L', 'Abono 4 L', 'Tipo'], inplace=True)
 
-
+# Eliminamos aquellas filas de riego que no pertenezcan a los sectores 1 y 3 ya que solo tenemos datos de suelo de esas zonas.
+df_riego = df_riego[df_riego['Sectores de Riego'].isin([1, 3])]
 """
     El objetivo es juntar todos los datos de entrenamiento (X), los cuales estan en los DF: df_datos_suelo1, df_datos_suelo2, df_clima.
 
