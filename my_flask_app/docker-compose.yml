@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: agro_data 
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app # Monta solo tu código fuente 
+      - ./config.py:/app/config.py 
+      - ./run.py:/app/run.py 
+      - ./requirements.txt:/app/requirements.txt
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_DEBUG=1 # Fuerza modo debug con autoreload
+    command: flask run --host=0.0.0.0 --port=5000

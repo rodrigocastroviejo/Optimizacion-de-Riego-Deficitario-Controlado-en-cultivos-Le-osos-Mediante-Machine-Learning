@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Home - AgroData{% endblock %}
+
+{% block content %}
+<div class="text-center">
+  <h1 class="fw-bold mb-4">Bienvenido a AgroData</h1>
+  <p class="lead text-muted mb-5">
+    Plataforma de análisis de datos agrarios. Sube tus datasets de sensores y obtén insights en tiempo real.
+  </p>
+  <a href="{{ url_for('main.upload_file') }}" class="btn btn-primary btn-lg shadow-sm">Subir Dataset</a>
+</div>
+
+<!-- Sección de características -->
+<div class="row mt-5">
+  <div class="col-md-4 text-center mb-4">
+    <i class="bi bi-upload fs-1 text-primary"></i>
+    <h4 class="mt-3">Subida fácil</h4>
+    <p>Arrastra y suelta tus archivos en segundos.</p>
+  </div>
+  <div class="col-md-4 text-center mb-4">
+    <i class="bi bi-graph-up-arrow fs-1 text-success"></i>
+    <h4 class="mt-3">Análisis avanzado</h4>
+    <p>Procesa tus datos con pipelines de series temporales.</p>
+  </div>
+  <div class="col-md-4 text-center mb-4">
+    <i class="bi bi-shield-check fs-1 text-warning"></i>
+    <h4 class="mt-3">Validación</h4>
+    <p>Revisa automáticamente que tu dataset cumpla el formato estándar.</p>
+  </div>
+</div>
+{% endblock %}
