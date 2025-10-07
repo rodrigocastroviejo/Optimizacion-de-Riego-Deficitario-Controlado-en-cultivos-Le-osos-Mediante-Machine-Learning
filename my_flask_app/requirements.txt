@@ -2,3 +2,4 @@ flask
 flask_SQLalchemy
 flask_migrate
 psycopg2-binary
+flask-login
