@@ -1,4 +1,3 @@
-```dockerfile
 # Imagen base ligera de Python
 FROM python:3.10-slim
 
@@ -27,4 +26,3 @@ EXPOSE 5000
 # Comando por defecto para correr Flask
 # Si usas "run.py" como punto de entrada:
 CMD ["python", "run.py"]
-```

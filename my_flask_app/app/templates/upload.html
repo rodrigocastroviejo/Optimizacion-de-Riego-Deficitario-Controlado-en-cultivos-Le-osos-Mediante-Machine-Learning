@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Subir Dataset{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Subir un nuevo dataset</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="file" class="form-label">Selecciona archivo (CSV)</label>
+            <input class="form-control" type="file" id="file" name="file" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Subir</button>
+    </form>
+
+    <hr class="my-4">
+
+    <h3>Historial de uploads</h3>
+        <ul class="list-group">
+            {% for dataset in datasets %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ dataset.filename }}
+                <span class="badge bg-secondary">{{ dataset.uploaded_at.strftime("%Y-%m-%d %H:%M") }}</span>
+            </li>
+            {% else %}
+            <li class="list-group-item">No hay datasets aún.</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
