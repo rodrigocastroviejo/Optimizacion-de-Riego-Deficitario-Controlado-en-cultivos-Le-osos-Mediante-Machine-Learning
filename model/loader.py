@@ -1,45 +1,42 @@
-#Importamos los datos desde los archivos .csv a DataFrames.
+import pandas as pd
+from pathlib import Path
 
-import pandas as pd 
+# Ruta base relativa al archivo actual
+base_path = Path(__file__).resolve().parent / "data"
 
+# Carpetas específicas
+climate_path = base_path / "climate_data"
+soil_path = base_path / "soil_data"
+irrigation_path = base_path / "old_obsolete_data" / "RIEGOS ALMENDRO2024.csv"
 
-df_clima = pd.read_csv(
-    'data/clima_OUT.csv',
-    sep=';',                    # Delimitador de columnas
-    decimal=',',                # Separador decimal
-    encoding='latin1',          # Codificación para caracteres especiales (Õ, Û, Ì, etc.)
-    parse_dates=['date'],       # Convertir columna de fecha a datetime
-    dayfirst=True  
-)
+soil_mini1_path = soil_path / "mini1"
+soil_mini2_path = soil_path / "mini2"
 
+# Cargar todos los Excel de clima
+climate_files = sorted(climate_path.glob("*.xlsx"))
+climate_dfs = [pd.read_excel(f, parse_dates=["Fecha"]) for f in climate_files]
 
+# Cargar todos los Excel de suelo
+soil_files = {
+    "mini_1": list(sorted(soil_mini1_path.glob("*.xlsx"))), 
+    "mini_2" : list(sorted(soil_mini2_path.glob("*.xlsx")))
+}
 
-df_datos_suelo1 = pd.read_csv(
-    'data/Mini1_OUT.csv',
-    sep=';',                    # Delimitador de columnas
-    decimal=',',                # Separador decimal
-    encoding='latin1',          # Codificación para caracteres especiales (Õ, Û, Ì, etc.)
-    parse_dates=['date'],       # Convertir columna de fecha a datetime
-    dayfirst=True  
-)
+soil_mini1_dfs = [pd.read_excel(f, parse_dates=["Fecha"]) for f in soil_files['mini_1']]
+soil_mini2_dfs = [pd.read_excel(f, parse_dates=["Fecha"]) for f in soil_files['mini_2']]
 
-#df_datos_suelo1.drop(columns=['Direccion del viento', 'Presión atmosférica', 'Índice de calor', 'Agua útil'], inplace=True)
+# Concatenar todos los años
+climate_data = pd.concat(climate_dfs, ignore_index=True)
+soil_mini1_data = pd.concat(soil_mini1_dfs, ignore_index=True)
+soil_mini2_data = pd.concat(soil_mini2_dfs, ignore_index=True)
 
-df_datos_suelo2 = pd.read_csv(
-    'data/Mini2_OUT.csv',
-    sep=';',                    # Delimitador de columnas
-    decimal=',',                # Separador decimal
-    encoding='latin1',          # Codificación para caracteres especiales (Õ, Û, Ì, etc.)
-    parse_dates=['date'],       # Convertir columna de fecha a datetime
-    dayfirst=True  
-)
 
 
 df_riego = pd.read_csv(
-    'data/RIEGOS ALMENDRO2024.csv',
+    irrigation_path,
     sep=';',                      # Delimitador de punto y coma
     decimal=',',                  # Usa coma como separador decimal
-    thousands=None,               # No hay separador de miles
+    thousands=None,               # No hay separador de mile
     parse_dates=['Inicio', 'Fin'], # Convierte estas columnas a datetime
     dayfirst=True,                # Formato de fecha día/mes/año
     dtype={
@@ -64,17 +61,5 @@ df_riego.drop(columns=['Programa', 'Nombre', 'Abono 1 L', 'Abono 2 L', 'Abono 3 
 
 # Eliminamos aquellas filas de riego que no pertenezcan a los sectores 1 y 3 ya que solo tenemos datos de suelo de esas zonas.
 df_riego = df_riego[df_riego['Sectores de Riego'].isin([1, 3])]
-"""
-    El objetivo es juntar todos los datos de entrenamiento (X), los cuales estan en los DF: df_datos_suelo1, df_datos_suelo2, df_clima.
 
-    df_datos_suelo1 y df_datos_suelo2 son mediciones de sensores sobre diferentes arboles que se encuentran en la misma finca, las mediciones 
-    son similares, sin embargo, diferentes ligeramente. Crearemos dos conjuntos de datos de entrenamiento, uno con df_datos_suelo1 y df_clima y
-    otro con df_datos_suelo2 y df_clima. 
-"""
-X_datos_suelo1 = pd.merge(df_datos_suelo1, df_clima)
-X_datos_suelo2 = pd.merge(df_datos_suelo2, df_clima)
-
-# Lo convertimos a dateTime para poder usarlos en graficos 
-X_datos_suelo1['date'] = pd.to_datetime(X_datos_suelo1['date'])
-X_datos_suelo2['date'] = pd.to_datetime(X_datos_suelo2['date'])
 
