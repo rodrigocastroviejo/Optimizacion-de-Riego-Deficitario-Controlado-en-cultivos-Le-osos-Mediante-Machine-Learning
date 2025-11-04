@@ -32,34 +32,3 @@ soil_mini2_data = pd.concat(soil_mini2_dfs, ignore_index=True)
 
 
 
-df_riego = pd.read_csv(
-    irrigation_path,
-    sep=';',                      # Delimitador de punto y coma
-    decimal=',',                  # Usa coma como separador decimal
-    thousands=None,               # No hay separador de mile
-    parse_dates=['Inicio', 'Fin'], # Convierte estas columnas a datetime
-    dayfirst=True,                # Formato de fecha día/mes/año
-    dtype={
-        'Activación': 'int',
-        'Duración': 'str',       # Lo convertiremos después a timedelta
-        'Agua m³': 'float',
-        'Tipo': 'str',
-        'Sectores de Riego': 'int'
-    }
-)
-
-
-
-# Convertir la columna 'Duración' a timedelta
-df_riego['Duración'] = pd.to_timedelta(df_riego['Duración'])
-
-"""
-    Eliminamos columna nombre y programa, ya que indican lo mismo que la columna sector, pero en un formato mas complicado de procesar o se repite
-    Eliminamos Abono XL, porque no vamos a tener en cuenta esta variabble en nuestro estudiol
-"""
-df_riego.drop(columns=['Programa', 'Nombre', 'Abono 1 L', 'Abono 2 L', 'Abono 3 L', 'Abono 4 L', 'Tipo'], inplace=True)
-
-# Eliminamos aquellas filas de riego que no pertenezcan a los sectores 1 y 3 ya que solo tenemos datos de suelo de esas zonas.
-df_riego = df_riego[df_riego['Sectores de Riego'].isin([1, 3])]
-
-
