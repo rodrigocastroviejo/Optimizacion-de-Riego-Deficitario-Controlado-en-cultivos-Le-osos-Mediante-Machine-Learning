@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Asegurar que Python pueda encontrar los módulos
+ENV PYTHONPATH=/app:$PYTHONPATH
+
 # Copiar requirements e instalarlos
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
