@@ -563,7 +563,48 @@ def prediccion_proceso():
         complete_progress()
         return jsonify({'error': str(e)}), 500
 
-
+@main.route("/prediccion/resultados")
+@login_required
+def prediccion_resultados():
+    """Mostrar resultados de la predicción completada"""
+    if 'predictions_data' not in session:
+        flash("No hay resultados de predicción disponibles", "warning")
+        return redirect(url_for("main.prediccion"))
+    
+    try:
+        # Cargar datos de la sesión
+        unified_predictions = pd.read_json(session['predictions_data'])
+        irrigation_df = pd.read_json(session['irrigation_data'])
+        horizon_days = session.get('horizon_days', 30)
+        plots = session.get('prediction_plots', {})
+        
+        # Preparar datos para la vista
+        prediction_summary = {
+            'total_dias': horizon_days,
+            'fecha_inicio': datetime.now().strftime('%Y-%m-%d'),
+            'fecha_fin': (datetime.now() + timedelta(days=horizon_days)).strftime('%Y-%m-%d'),
+            'num_variables': len(unified_predictions.columns),
+            'riego_promedio': round(irrigation_df['Riego_mm'].mean(), 2),
+            'riego_total': round(irrigation_df['Riego_mm'].sum(), 2),
+            'riego_maximo': round(irrigation_df['Riego_mm'].max(), 2),
+            'riego_minimo': round(irrigation_df['Riego_mm'].min(), 2)
+        }
+        
+        # Preparar datos para tabla
+        table_data = irrigation_df.head(15).to_dict('records')
+        
+        # Limpiar sesión
+        session.pop('prediction_progress', None)
+        
+        return render_template("prediction.html",
+                             plots=plots,
+                             prediction_summary=prediction_summary,
+                             table_data=table_data,
+                             show_results=True)
+        
+    except Exception as e:
+        flash(f"Error al cargar resultados: {str(e)}", "danger")
+        return redirect(url_for("main.prediccion"))
 
 @main.route("/descargar_predicciones")
 @login_required
