@@ -501,6 +501,70 @@ def api_progreso_prediccion():
         'total_substeps': progress.get('total_substeps', 0)
     })
 
+@main.route("/prediccion/proceso", methods=["POST"])
+@login_required
+def prediccion_proceso():
+    """Ruta para iniciar el proceso de predicción en segundo plano"""
+    try:
+        # Obtener parámetros
+        horizon_days = int(request.form.get("horizon_days", 30))
+        horizon_days = min(horizon_days, 365)
+        
+        # Inicializar progreso
+        init_prediction_progress()
+        
+        # Ejecutar predicción (en la práctica, esto debería ser en un hilo separado)
+        # Por simplicidad, lo hacemos sincrónico
+        update_progress(0, '🚀 Iniciando proceso de predicción...')
+        
+        # Paso 1: Cargar modelos
+        models = load_all_models()
+        if not models:
+            update_progress(1, '❌ No se pudieron cargar modelos')
+            complete_progress()
+            return jsonify({'error': 'No se encontraron modelos entrenados'}), 400
+        
+        # Paso 2: Cargar datos
+        last_data = load_latest_data()
+        
+        # Paso 3: Hacer predicciones
+        predictions = make_predictions(models, last_data, horizon_days)
+        if not predictions:
+            update_progress(3, '❌ No se pudieron generar predicciones')
+            complete_progress()
+            return jsonify({'error': 'No se pudieron generar predicciones'}), 400
+        
+        # Paso 4: Unificar predicciones
+        unified_predictions = unify_predictions(predictions, horizon_days)
+        
+        # Paso 5: Calcular riego
+        irrigation_df = calculate_irrigation(unified_predictions)
+        
+        # Paso 6: Crear gráficos
+        plots = create_prediction_plots(unified_predictions, irrigation_df, last_data)
+        
+        # Guardar resultados en sesión
+        session['predictions_data'] = unified_predictions.to_json()
+        session['irrigation_data'] = irrigation_df.to_json()
+        session['horizon_days'] = horizon_days
+        session['prediction_plots'] = plots
+        
+        # Completar progreso
+        update_progress(6, '✅ ¡Predicción completada exitosamente!')
+        complete_progress()
+        
+        return jsonify({
+            'success': True,
+            'redirect_url': url_for('main.prediccion_resultados')
+        })
+        
+    except Exception as e:
+        update_progress(0, f'❌ Error en el proceso: {str(e)}')
+        complete_progress()
+        return jsonify({'error': str(e)}), 500
+
+
+
 @main.route("/descargar_predicciones")
 @login_required
 def descargar_predicciones():
