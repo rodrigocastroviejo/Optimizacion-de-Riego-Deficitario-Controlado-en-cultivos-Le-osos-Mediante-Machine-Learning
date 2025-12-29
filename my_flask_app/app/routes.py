@@ -463,75 +463,10 @@ def create_prediction_plots(predictions_df, irrigation_df, last_data):
 @main.route("/prediccion", methods=["GET", "POST"])
 @login_required
 def prediccion():
-    """Ruta para realizar y mostrar predicciones"""
-    
+    """Ruta principal de predicciones"""
     if request.method == "POST":
-        try:
-            # Obtener parámetros del formulario
-            horizon_days = int(request.form.get("horizon_days", 30))
-            horizon_days = min(horizon_days, 365)  # Límite máximo
-            
-            print(f"\n🌐 Iniciando predicción para {horizon_days} días")
-            
-            # Cargar modelos
-            models = load_all_models()
-            if not models:
-                flash("No se encontraron modelos entrenados.", "warning")
-                return redirect(url_for("main.prediccion"))
-            
-            # Cargar datos
-            last_data = load_latest_data()
-            
-            # Realizar predicciones
-            predictions = make_predictions(models, last_data, horizon_days)
-            
-            if not predictions:
-                flash("No se pudieron generar predicciones con los modelos disponibles.", "warning")
-                return redirect(url_for("main.prediccion"))
-            
-            # Unificar predicciones
-            unified_predictions = c(predictions, horizon_days)
-            
-            # Calcular riego
-            irrigation_df = calculate_irrigation(unified_predictions)
-            
-            # Crear gráficos
-            plots = create_prediction_plots(unified_predictions, irrigation_df, last_data)
-            
-            # Preparar datos para la vista
-            prediction_summary = {
-                'total_dias': horizon_days,
-                'fecha_inicio': datetime.now().strftime('%Y-%m-%d'),
-                'fecha_fin': (datetime.now() + timedelta(days=horizon_days)).strftime('%Y-%m-%d'),
-                'num_variables': len(unified_predictions.columns),
-                'riego_promedio': round(irrigation_df['Riego_mm'].mean(), 2),
-                'riego_total': round(irrigation_df['Riego_mm'].sum(), 2),
-                'riego_maximo': round(irrigation_df['Riego_mm'].max(), 2),
-                'riego_minimo': round(irrigation_df['Riego_mm'].min(), 2)
-            }
-            
-            # Preparar datos para tabla (primeros 15 días)
-            table_data = irrigation_df.head(15).to_dict('records')
-            
-            # Guardar datos en sesión para descarga
-            session['predictions_data'] = unified_predictions.to_json()
-            session['irrigation_data'] = irrigation_df.to_json()
-            session['horizon_days'] = horizon_days
-            
-            print(f"✅ Predicción completada exitosamente")
-            
-            return render_template("prediction.html",
-                                 plots=plots,
-                                 prediction_summary=prediction_summary,
-                                 table_data=table_data,
-                                 show_results=True)
-            
-        except Exception as e:
-            print(f"❌ Error en predicción: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            flash(f"Error al generar predicciones: {str(e)}", "danger")
-            return redirect(url_for("main.prediccion"))
+        # Redirigir a la página de progreso
+        return render_template("prediction_progress.html")
     
     # GET request - mostrar formulario
     return render_template("prediction.html", show_results=False)
