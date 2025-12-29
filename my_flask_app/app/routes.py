@@ -285,21 +285,26 @@ def make_predictions(models_dict, last_data, horizon_days):
     update_progress(3, f'🎉 Total predicciones generadas: {len(predictions)}')
     return predictions
 
-
 def unify_predictions(predictions_dict, horizon_days):
-    """Unificar predicciones en un solo DataFrame"""
+    """Unificar predicciones con actualización de progreso"""
+    update_progress(4, '🔄 Unificando predicciones...')
+    
     if not predictions_dict:
+        update_progress(4, '❌ No hay predicciones para unificar')
         return pd.DataFrame()
     
-    # Crear fechas futuras
-    last_date = datetime.now()
+    # Mostrar qué predicciones se van a unificar
+    sarima_predictions = [k for k in predictions_dict.keys() if not k.startswith(('VAR_', 'LSTM_', 'SARIMA'))]
+    
+    update_progress(4, f'📋 SARIMA predictions: {len(sarima_predictions)} variables')
+    
+    # Crear DataFrame unificado
     future_dates = pd.date_range(
-        start=last_date + timedelta(days=1), 
-        periods=horizon_days, 
+        start=datetime.now() + timedelta(days=1),
+        periods=horizon_days,
         freq='D'
     )
     
-    # Crear DataFrame con todas las predicciones
     unified_df = pd.DataFrame(index=future_dates)
     unified_df.index.name = 'Fecha'
     
@@ -307,28 +312,37 @@ def unify_predictions(predictions_dict, horizon_days):
         if len(pred_values) >= horizon_days:
             unified_df[var_name] = pred_values[:horizon_days]
         else:
-            # Rellenar si es necesario
             unified_df[var_name] = np.pad(
-                pred_values, 
-                (0, horizon_days - len(pred_values)), 
+                pred_values,
+                (0, horizon_days - len(pred_values)),
                 'edge'
             )
     
-    print(f"📊 DataFrame unificado: {unified_df.shape}")
+    update_progress(4, f'📊 DataFrame unificado: {unified_df.shape[0]} filas × {unified_df.shape[1]} columnas')
+    update_progress(4, '✅ Predicciones unificadas exitosamente')
+    
     return unified_df
 
 def calculate_irrigation(predictions_df):
-    """Calcular necesidades de riego basadas en predicciones"""
+    """Calcular riego con actualización de progreso"""
+    update_progress(5, '💧 Calculando necesidades de riego...')
+    
     if predictions_df.empty:
+        update_progress(5, '❌ No hay datos para calcular riego')
         return pd.DataFrame()
     
-    print("💧 Calculando necesidades de riego...")
+    # Mostrar fórmula de cálculo
+    update_progress(5, '📐 Fórmula aplicada:')
+    update_progress(5, '  ET₀ = 0.0023 × (Tmean + 17.8) × Radiación × 0.0864')
+    update_progress(5, '  Riego = max(0, ET₀ × Kc × factor_humedad + ajuste_precipitación)')
+    update_progress(5, '  Donde: Kc = 0.8, factor_humedad = max(0.7, 1 - (humedad - 60)/100)')
     
     irrigation_data = []
     
+    # Calcular para cada día
+    total_days = len(predictions_df)
     for idx, row in predictions_df.iterrows():
-        # Buscar variables en las predicciones
-        # Ajusta estos nombres según tus columnas reales
+        # Buscar variables
         temp_key = next((col for col in predictions_df.columns 
                         if 'temperatura' in col.lower()), None)
         precip_key = next((col for col in predictions_df.columns 
@@ -338,32 +352,17 @@ def calculate_irrigation(predictions_df):
         radiation_key = next((col for col in predictions_df.columns 
                             if 'radiacion' in col.lower()), None)
         
-        # Valores predichos (usar valor predicho o default)
+        # Valores
         temp = row[temp_key] if temp_key else 20.0
         precip = row[precip_key] if precip_key else 0.0
         humidity = row[humidity_key] if humidity_key else 60.0
         radiation = row[radiation_key] if radiation_key else 5.0
         
-        # FÓRMULA DE RIEGO - AJUSTA ESTA PARTE SEGÚN TU LÓGICA
-        # Esta es una fórmula de ejemplo basada en la evapotranspiración
-        
-        # 1. Evapotranspiración de referencia (Hargreaves simplificado)
-        # ET₀ = 0.0023 * (Tmean + 17.8) * (Tmax - Tmin)^0.5 * Ra
-        # Donde Ra es radiación extraterrestre (simplificamos)
-        
-        # Para simplificar, usamos una fórmula empírica
+        # Cálculo
         et0 = 0.0023 * (temp + 17.8) * radiation * 0.0864
-        
-        # 2. Coeficiente del cultivo (Kc) - depende del cultivo
-        kc = 0.8  # Ejemplo para maíz en etapa media
-        
-        # 3. Efecto de humedad
+        kc = 0.8
         humidity_factor = max(0.7, 1 - (humidity - 60) / 100)
-        
-        # 4. Efecto de precipitación
-        precip_adjustment = -min(precip, 5)  # Máximo 5mm de ajuste por lluvia
-        
-        # 5. Necesidad de riego
+        precip_adjustment = -min(precip, 5)
         irrigation_needs = max(0, et0 * kc * humidity_factor + precip_adjustment)
         
         irrigation_data.append({
@@ -375,59 +374,53 @@ def calculate_irrigation(predictions_df):
             'Radiacion_estimada': round(radiation, 1),
             'ET0_estimada': round(et0, 2)
         })
+        
+        # Actualizar progreso cada 10 días
+        if len(irrigation_data) % max(1, total_days//10) == 0:
+            progress_pct = (len(irrigation_data) / total_days) * 100
+            update_progress(5, f'  📅 Día {len(irrigation_data)}/{total_days} ({progress_pct:.0f}%)',
+                           is_substep=True, substep_total=total_days)
     
     irrigation_df = pd.DataFrame(irrigation_data)
-    print(f"💦 Cálculo de riego completado: {len(irrigation_df)} días")
+    update_progress(5, f'💦 Cálculo completado: {len(irrigation_df)} días')
+    update_progress(5, f'📈 Riego total: {irrigation_df["Riego_mm"].sum():.2f} mm')
+    update_progress(5, f'📊 Riego promedio: {irrigation_df["Riego_mm"].mean():.2f} mm/día')
     
     return irrigation_df
 
 def create_prediction_plots(predictions_df, irrigation_df, last_data):
-    """Crear gráficos de predicciones"""
+    """Crear gráficos con actualización de progreso"""
+    update_progress(6, '🎨 Generando visualizaciones...')
+    
     plots = {}
     
-    print("🎨 Generando gráficos...")
-    
-    # 1. Gráfico de riego
+    # Gráfico 1: Riego
+    update_progress(6, '📊 Creando gráfico de riego...', is_substep=True, substep_total=3)
     try:
         fig1, ax1 = plt.subplots(figsize=(12, 6))
-        
         ax1.plot(irrigation_df['Fecha'], irrigation_df['Riego_mm'], 
                 color='blue', linewidth=2, marker='o', markersize=4)
         ax1.fill_between(irrigation_df['Fecha'], 0, irrigation_df['Riego_mm'], 
                         alpha=0.3, color='lightblue')
-        
         ax1.set_title('Necesidad de Riego Predicha', fontsize=14, fontweight='bold')
         ax1.set_xlabel('Fecha')
         ax1.set_ylabel('Riego (mm/día)')
         ax1.grid(True, alpha=0.3)
         ax1.tick_params(axis='x', rotation=45)
-        
-        # Añadir estadísticas
-        avg_riego = irrigation_df['Riego_mm'].mean()
-        max_riego = irrigation_df['Riego_mm'].max()
-        total_riego = irrigation_df['Riego_mm'].sum()
-        
-        ax1.axhline(y=avg_riego, color='red', linestyle='--', 
-                   label=f'Promedio: {avg_riego:.2f} mm')
-        
-        plt.legend()
         plt.tight_layout()
         
-        # Guardar gráfico
         img1 = io.BytesIO()
         plt.savefig(img1, format='png', dpi=100, bbox_inches='tight')
         img1.seek(0)
         plots['riego'] = base64.b64encode(img1.getvalue()).decode()
         plt.close(fig1)
-        
-        print("  ✅ Gráfico de riego generado")
-        
+        update_progress(6, '  ✅ Gráfico de riego generado')
     except Exception as e:
-        print(f"  ❌ Error generando gráfico de riego: {e}")
+        update_progress(6, f'  ❌ Error en gráfico de riego: {e}')
     
-    # 2. Gráfico de variables principales
+    # Gráfico 2: Variables principales
+    update_progress(6, '📈 Creando gráfico de variables...', is_substep=True, substep_total=3)
     try:
-        # Identificar variables principales
         main_vars = []
         for var in ['temperatura', 'humedad', 'precipitacion', 'radiacion']:
             matching = [col for col in predictions_df.columns if var in col.lower()]
@@ -450,20 +443,18 @@ def create_prediction_plots(predictions_df, irrigation_df, last_data):
             
             plt.tight_layout()
             
-            # Guardar gráfico
             img2 = io.BytesIO()
             plt.savefig(img2, format='png', dpi=100, bbox_inches='tight')
             img2.seek(0)
             plots['variables'] = base64.b64encode(img2.getvalue()).decode()
             plt.close(fig2)
-            
-            print(f"  ✅ Gráfico de {len(main_vars)} variables generado")
-            
+            update_progress(6, f'  ✅ Gráfico de {len(main_vars)} variables generado')
     except Exception as e:
-        print(f"  ❌ Error generando gráfico de variables: {e}")
+        update_progress(6, f'  ❌ Error en gráfico de variables: {e}')
     
-    print(f"🎨 Total gráficos generados: {len(plots)}")
+    update_progress(6, '✅ Visualizaciones completadas', is_substep=True, substep_total=3)
     return plots
+
 
 # ====================
 # RUTAS DE PREDICCIÓN
