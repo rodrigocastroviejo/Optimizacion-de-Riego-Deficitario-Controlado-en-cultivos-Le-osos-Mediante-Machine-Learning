@@ -30,7 +30,10 @@ header {
   color: #ffc107;
 }
 
+/*========================================*/
 /* Estilos para el progreso de predicción */
+/*========================================*/
+
 .progress-bar-animated {
     animation: progress-animation 1s linear infinite;
 }
