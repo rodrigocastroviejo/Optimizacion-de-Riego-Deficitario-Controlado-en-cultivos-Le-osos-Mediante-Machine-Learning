@@ -244,3 +244,14 @@
     }
 </style>
 {% endblock %}
+
+{% block extra_js %}
+    <script>
+    $(document).ready(function() {
+        $('#predictionForm').submit(function(e) {
+            const horizonDays = $('#horizon_days').val();
+            localStorage.setItem('prediction_horizon', horizonDays);
+        });
+    });
+    </script>
+{% endblock %}
