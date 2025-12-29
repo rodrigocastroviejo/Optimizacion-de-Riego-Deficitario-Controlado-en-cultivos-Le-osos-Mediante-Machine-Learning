@@ -471,6 +471,36 @@ def prediccion():
     # GET request - mostrar formulario
     return render_template("prediction.html", show_results=False)
 
+@main.route("/api/progreso_prediccion")
+@login_required
+def api_progreso_prediccion():
+    """API para obtener el progreso actual de la predicción"""
+    progress = session.get('prediction_progress', {})
+    
+    # Calcular porcentaje general
+    total_steps = progress.get('total_steps', 6)
+    current_step = progress.get('current_step', 0)
+    base_percentage = (current_step / total_steps) * 100 if total_steps > 0 else 0
+    
+    # Ajustar por subpasos si existen
+    if progress.get('total_substeps', 0) > 0:
+        substep_percentage = (progress.get('current_substep', 0) / 
+                             progress.get('total_substeps', 1)) * (100 / total_steps)
+        total_percentage = min(100, base_percentage + substep_percentage)
+    else:
+        total_percentage = base_percentage
+    
+    return jsonify({
+        'current_step': current_step,
+        'total_steps': total_steps,
+        'current_message': progress.get('current_message', ''),
+        'step_messages': progress.get('step_messages', []),
+        'percentage': round(total_percentage, 1),
+        'is_complete': progress.get('is_complete', False),
+        'current_substep': progress.get('current_substep', 0),
+        'total_substeps': progress.get('total_substeps', 0)
+    })
+
 @main.route("/descargar_predicciones")
 @login_required
 def descargar_predicciones():
