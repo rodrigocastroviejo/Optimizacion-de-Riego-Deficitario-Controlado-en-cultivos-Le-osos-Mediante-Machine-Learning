@@ -51,16 +51,6 @@ def load_and_prepare_data(path: Path) -> pd.DataFrame:
         if 'Fecha' in df.columns:
             df['Fecha'] = pd.to_datetime(df['Fecha'])
             df.set_index('Fecha', inplace=True)
-        else:
-            # Crear índice temporal si no hay fecha
-            df.index = pd.date_range(start='2000-01-01', periods=len(df), freq='D')
-    
-    df = df.sort_index()
-    
-    # Interpolar valores faltantes
-    full_range = pd.date_range(df.index.min(), df.index.max(), freq="D")
-    df = df.reindex(full_range)
-    df = df.interpolate(method="time")
     
     print(f"✅ Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas")
     return df
