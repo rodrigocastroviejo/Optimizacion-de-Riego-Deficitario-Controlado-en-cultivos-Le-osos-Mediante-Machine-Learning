@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 from app.model_registry import register_custom_classes
 register_custom_classes()
 
-from app.progress_tracker import init_prediction_progress, update_progress, complete_progress
+from app.progress_tracker import Progress_tracker
 
 from app.auxiliary_prediction_functions import load_all_models, load_latest_data, make_predictions, unify_predictions, calculate_irrigation, create_prediction_plots
 
@@ -136,7 +136,7 @@ def prediccion():
 @login_required
 def api_progreso_prediccion():
     """API para obtener el progreso actual de la predicción"""
-    progress = session.get('prediction_progress', {})
+    progress = session.get('prediccion', {})
     
     # Calcular porcentaje general
     total_steps = progress.get('total_steps', 6)
@@ -172,17 +172,17 @@ def prediccion_proceso():
         horizon_days = min(horizon_days, 365)
         
         # Inicializar progreso
-        init_prediction_progress()
+        progress_tracker = Progress_tracker("prediccion", 6)
         
         # Ejecutar predicción (en la práctica, esto debería ser en un hilo separado)
         # Por simplicidad, lo hacemos sincrónico
-        update_progress(0, '🚀 Iniciando proceso de predicción...')
+        progress_tracker.update_progress(0, '🚀 Iniciando proceso de predicción...')
         
         # Paso 1: Cargar modelos
         models = load_all_models()
         if not models:
-            update_progress(1, '❌ No se pudieron cargar modelos')
-            complete_progress()
+            progress_tracker.update_progress(1, '❌ No se pudieron cargar modelos')
+            progress_tracker.complete_progress()
             return jsonify({'error': 'No se encontraron modelos entrenados'}), 400
         
         # Paso 2: Cargar datos
@@ -191,8 +191,8 @@ def prediccion_proceso():
         # Paso 3: Hacer predicciones
         predictions = make_predictions(models, last_data, horizon_days)
         if not predictions:
-            update_progress(3, '❌ No se pudieron generar predicciones')
-            complete_progress()
+            progress_tracker.update_progress(3, '❌ No se pudieron generar predicciones')
+            progress_tracker.complete_progress()
             return jsonify({'error': 'No se pudieron generar predicciones'}), 400
         
         # Paso 4: Unificar predicciones
@@ -211,8 +211,8 @@ def prediccion_proceso():
         session['prediction_plots'] = plots
         
         # Completar progreso
-        update_progress(6, '✅ ¡Predicción completada exitosamente!')
-        complete_progress()
+        progress_tracker.update_progress(6, '✅ ¡Predicción completada exitosamente!')
+        progress_tracker.complete_progress()
         
         return jsonify({
             'success': True,
@@ -220,8 +220,8 @@ def prediccion_proceso():
         })
         
     except Exception as e:
-        update_progress(0, f'❌ Error en el proceso: {str(e)}')
-        complete_progress()
+        progress_tracker.update_progress(0, f'❌ Error en el proceso: {str(e)}')
+        progress_tracker.complete_progress()
         return jsonify({'error': str(e)}), 500
 
 @main.route("/prediccion/resultados")
