@@ -332,16 +332,119 @@ def modelos_disponibles():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@main.route("/entrenar_modelos")
-@login_required
-def entrenar_modelos():
-    """Ruta para entrenar modelos (solo para desarrollo)"""
-    try:
-        from app.train_models import train_and_save
-        train_and_save()
-        flash("Modelos entrenados exitosamente", "success")
-    except Exception as e:
-        flash(f"Error entrenando modelos: {str(e)}", "danger")
     
-    return redirect(url_for("main.prediccion"))
+
+
+
+# ======================
+# RUTAS DE ENTRENAMIENTO
+# ======================
+
+@main.route("/entrenamiento", methods=["GET", "POST"])
+@login_required
+def entrenamiento():
+    """Ruta principal de predicciones"""
+    if request.method == "POST":
+        # Redirigir a la página de progreso
+        return render_template("train_progress.html")
+    
+    # GET request - mostrar formulario
+    return render_template("training.html", show_results=False)
+
+@main.route("/api/progreso_entrenamiento")
+@login_required
+def api_progreso_entrenamiento():
+    """API para obtener el progreso actual del entrenamiento"""
+    progress = session.get('entrenamiento', {})
+    
+    # Calcular porcentaje general
+    total_steps = progress.get('total_steps')
+    current_step = progress.get('current_step', 0)
+    base_percentage = (current_step / total_steps) * 100 if total_steps > 0 else 0
+    
+    # Ajustar por subpasos si existen
+    if progress.get('total_substeps', 0) > 0:
+        substep_percentage = (progress.get('current_substep', 0) / 
+                             progress.get('total_substeps', 1)) * (100 / total_steps)
+        total_percentage = min(100, base_percentage + substep_percentage)
+    else:
+        total_percentage = base_percentage
+    
+    return jsonify({
+        'current_step': current_step,
+        'total_steps': total_steps,
+        'current_message': progress.get('current_message', ''),
+        'step_messages': progress.get('step_messages', []),
+        'percentage': round(total_percentage, 1),
+        'is_complete': progress.get('is_complete', False),
+        'current_substep': progress.get('current_substep', 0),
+        'total_substeps': progress.get('total_substeps', 0)
+    })
+
+@main.route("/entrenamiento/proceso", methods=["POST"])
+@login_required
+def entrenamiento_proceso():
+    """Ruta para iniciar el proceso de entrenamiento en segundo plano"""
+    try:
+        # Obtener parámetros del formulario
+        data_filename = request.form.get("data_file")
+        test_size = int(request.form.get("test_size", 180))
+        
+        # Modelos a entrenar
+        models_to_train = {
+            'sarima': 'sarima' in request.form.getlist("models"),
+            'sarimax': 'sarimax' in request.form.getlist("models"),
+            'var': 'var' in request.form.getlist("models"),
+            'lstm': 'lstm' in request.form.getlist("models")
+        }
+        
+        # Parámetros SARIMA
+        sarima_p = int(request.form.get("sarima_p", 1))
+        sarima_d = int(request.form.get("sarima_d", 1))
+        sarima_q = int(request.form.get("sarima_q", 1))
+        sarima_P = int(request.form.get("sarima_P", 1))
+        sarima_D = int(request.form.get("sarima_D", 1))
+        sarima_Q = int(request.form.get("sarima_Q", 1))
+        sarima_s = int(request.form.get("sarima_s", 30))
+        
+        # Verificar que se haya seleccionado al menos un modelo
+        if not any(models_to_train.values()):
+            return jsonify({'error': 'Selecciona al menos un tipo de modelo para entrenar'}), 400
+        
+        
+        # Crear configuración
+        config = TrainingConfig(
+            data_file=data_file_path,
+            test_size=test_size,
+            sarima_order=(sarima_p, sarima_d, sarima_q),
+            sarima_seasonal_order=(sarima_P, sarima_D, sarima_Q, sarima_s),
+            var_maxlags=int(request.form.get("var_lags", 15)),
+            models_to_train=models_to_train
+        )
+        
+        # Inicializar progreso
+        progress_tracker = Progress_tracker("entrenamiento", 3)
+        
+        # Ejecutar entrenamiento (en la práctica, esto debería ser en un hilo separado)
+        # Por simplicidad, lo hacemos sincrónico
+        progress_tracker.update_progress(0, '🚀 Iniciando proceso de entrenamiento...')
+        try:
+            from app.train_models import train_and_save
+            train_and_save()
+            flash("Modelos entrenados exitosamente", "success")
+        except Exception as e:
+            flash(f"Error entrenando modelos: {str(e)}", "danger")
+
+        # Completar progreso
+        progress_tracker.update_progress(3, '✅ Entrenamiento completado exitosamente!')
+        progress_tracker.complete_progress()
+        
+        return jsonify({
+            'success': True,
+            'redirect_url': url_for('main.entrenamiento_resultados')
+        })
+        
+    except Exception as e:
+        progress_tracker.update_progress(0, f'❌ Error en el proceso: {str(e)}')
+        progress_tracker.complete_progress()
+        return jsonify({'error': str(e)}), 500
