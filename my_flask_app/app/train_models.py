@@ -16,6 +16,9 @@ register_custom_classes()
 
 from app.ml_models import SarimaModel, SarimaxModel, VarModel, LSTMModel
 
+from flask import session
+progress_tracker = session.get('entrenamiento', {})
+
 # =========================
 # CONFIGURACIÓN
 # =========================
@@ -43,7 +46,7 @@ def load_and_prepare_data(data_filename) -> pd.DataFrame:
 
     DATA_PATH = UPLOADS_PATH / data_filename
 
-    print(f"📂 Cargando datos de: {DATA_PATH}")
+    progress_tracker.update_progress(1, f"📂 Cargando datos de: {DATA_PATH}")
 
 
     
@@ -59,7 +62,21 @@ def load_and_prepare_data(data_filename) -> pd.DataFrame:
             df['Fecha'] = pd.to_datetime(df['Fecha'])
             df.set_index('Fecha', inplace=True)
     
-    print(f"✅ Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas")
+    
+    progress_tracker.update_progress(1, f"✅ Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas")
+    progress_tracker.update_progress(1, f'📅 Rango temporal: {df.index.min().strftime("%Y-%m-%d")} a {df.index.max().strftime("%Y-%m-%d")}')
+    progress_tracker.update_progress(1, f'📋 Columnas disponibles: {", ".join(df.columns.tolist()[:5])}...')
+
+    # Mostrar primeras y últimas filas
+    progress_tracker.update_progress(1, '📊 Primeras 3 filas:')
+    for idx, row in df.head(3).iterrows():
+        progress_tracker.update_progress(1, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}')
+
+    progress_tracker.update_progress(1, '📊 Últimas 3 filas:')
+    for idx, row in df.tail(3).iterrows():
+        progress_tracker.update_progress(1, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}')
+       
+        
     return df
 
 def temporal_train_test_split(df, test_size):
@@ -68,7 +85,8 @@ def temporal_train_test_split(df, test_size):
     train_df = df.iloc[:split]
     test_df = df.iloc[split:]
     
-    print(f"📊 Split temporal: Train={len(train_df)}, Test={len(test_df)}")
+    progress_tracker.update_progress(2, f"📊 Split temporal: Train={len(train_df)}, Test={len(test_df)}")
+
     return train_df, test_df
 
 def create_custom_scaler(df):
@@ -179,18 +197,16 @@ def create_lstm_pipeline(df):
 # ENTRENAMIENTO
 # =========================
 def train_and_save():
-    """Función principal para entrenar y guardar modelos"""
-    print("🚀 Iniciando entrenamiento de modelos...")
-    
+    """Función principal para entrenar y guardar modelos"""    
     # 1. Cargar datos
     df = load_and_prepare_data(Config.data_filename)
-    print(f"📈 Columnas disponibles: {df.columns.tolist()}")
     
     # 2. Dividir datos
     train_df, test_df = temporal_train_test_split(df, Config.TEST_SIZE)
     
     # 3. Crear pipelines
-    print("\n🔨 Creando pipelines...")
+    progress_tracker.update_progress(3, "\n🔨 Creando pipelines...")
+    
     pipelines = {}
     
     # SARIMA pipelines
@@ -209,32 +225,41 @@ def train_and_save():
     # lstm_pipe = create_lstm_pipeline(train_df)
     # pipelines["lstm_multivariate"] = lstm_pipe
     
+    # Agregación de la cantidad de elementos por cada clave del dicc
+    total_models = sum(len(v) for v in pipelines.values())
+    substeps_per_model = 4
+    total_substeps = total_models * substeps_per_model
+                       
     # 4. Entrenar y guardar modelos
-    print(f"\n🎯 Entrenando {len(pipelines)} modelos...")
+    progress_tracker.update_progress(4, f"\n🎯 Entrenando {len(pipelines)} modelos...")
     
     for name, pipeline in pipelines.items():
-        print(f"\n➡️ Entrenando: {name}")
+        progress_tracker.update_progress(None, f"\n➡️ Entrenando: {name}", is_substep=True, substep_total=total_substeps)
+
+
         try:
             # Entrenar pipeline
             pipeline.fit(train_df)
-            print(f"   ✅ Entrenado exitosamente")
-            
+            progress_tracker.update_progress(None, f"   ✅ Entrenado exitosamente", is_substep=True)            
             # Guardar modelo
             save_path = MODELS_PATH / f"{name}_model.pkl"
             joblib.dump(pipeline, save_path, compress=3)  # compress para archivos más pequeños
-            print(f"   💾 Guardado en: {save_path}")
+            progress_tracker.update_progress(None, f"   💾 Guardado en: {save_path}", is_substep=True)            
             
         except Exception as e:
-            print(f"   ❌ Error entrenando {name}: {str(e)}")
-    
-    print(f"\n✅ Entrenamiento completado!")
-    print(f"📁 Modelos guardados en: {MODELS_PATH}")
-    
-    # 5. Verificar que se guardaron
+            progress_tracker.update_progress(4, f"   ❌ Error entrenando {name}: {str(e)}")       
+
+
+    # Verificar que se guardaron
     model_files = list(MODELS_PATH.glob("*.pkl"))
-    print(f"\n📋 Modelos guardados ({len(model_files)}):")
     for file in model_files:
-        print(f"   • {file.name}")
+        progress_tracker.update_progress(None, f"   • {file.name}", is_substep=True)          
+    
+
+    progress_tracker.update_progress(4, f"\n✅ Entrenamiento completado!")            
+    progress_tracker.update_progress(4, f"📁 Modelos guardados en: {MODELS_PATH}")            
+
+           
 
 if __name__ == "__main__":
     train_and_save()

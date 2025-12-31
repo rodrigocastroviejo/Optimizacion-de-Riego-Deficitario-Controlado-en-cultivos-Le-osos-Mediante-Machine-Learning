@@ -432,7 +432,7 @@ def entrenamiento_proceso():
         )
         
         # Inicializar progreso
-        progress_tracker = Progress_tracker("entrenamiento", 3)
+        progress_tracker = Progress_tracker("entrenamiento", 5)
         
         # Ejecutar entrenamiento (en la práctica, esto debería ser en un hilo separado)
         # Por simplicidad, lo hacemos sincrónico
@@ -444,7 +444,6 @@ def entrenamiento_proceso():
             flash(f"Error entrenando modelos: {str(e)}", "danger")
 
         # Completar progreso
-        progress_tracker.update_progress(3, '✅ Entrenamiento completado exitosamente!')
         progress_tracker.complete_progress()
         
         return jsonify({
@@ -453,6 +452,6 @@ def entrenamiento_proceso():
         })
         
     except Exception as e:
-        progress_tracker.update_progress(0, f'❌ Error en el proceso: {str(e)}')
+        progress_tracker.update_progress(5, f'❌ Error en el proceso: {str(e)}')
         progress_tracker.complete_progress()
         return jsonify({'error': str(e)}), 500

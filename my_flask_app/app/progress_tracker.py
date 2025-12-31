@@ -27,6 +27,8 @@ class Progress_tracker:
             if substep_total > 0:
                 progress['total_substeps'] = substep_total
         else:
+            progress['current_substep'] = 0
+            progress['total_substeps'] = 0
             progress['current_step'] = step
             progress['current_message'] = message
         
@@ -48,7 +50,7 @@ class Progress_tracker:
         progress = session[self.process_tracked]
 
         progress['is_complete'] = True
-        progress['elapsed_time'] = datetime.now() - self.session['start_time']
+        progress['elapsed_time'] = datetime.now() - progress['start_time']
 
         session[self.process_tracked] = progress
         session.modified = True
