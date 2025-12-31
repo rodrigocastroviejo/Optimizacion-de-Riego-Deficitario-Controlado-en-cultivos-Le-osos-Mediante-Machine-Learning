@@ -21,6 +21,9 @@ from app.progress_tracker import Progress_tracker
 
 from app.auxiliary_prediction_functions import load_all_models, load_latest_data, make_predictions, unify_predictions, calculate_irrigation, create_prediction_plots
 
+from app.train_models import train_and_save, Config
+
+
 main = Blueprint("main", __name__)
 
 UPLOAD_FOLDER = "uploads"
@@ -406,20 +409,26 @@ def entrenamiento_proceso():
         sarima_D = int(request.form.get("sarima_D", 1))
         sarima_Q = int(request.form.get("sarima_Q", 1))
         sarima_s = int(request.form.get("sarima_s", 30))
+
+        var_maxlags = int(request.form.get("var_maxlags", 15))
+
         
         # Verificar que se haya seleccionado al menos un modelo
         if not any(models_to_train.values()):
             return jsonify({'error': 'Selecciona al menos un tipo de modelo para entrenar'}), 400
         
         
+        sarima_order = (sarima_p, sarima_d, sarima_q)
+        sarima_seasonal_order = (sarima_p, sarima_d, sarima_q, sarima_s)
+
         # Crear configuración
-        config = TrainingConfig(
-            data_file=data_file_path,
-            test_size=test_size,
-            sarima_order=(sarima_p, sarima_d, sarima_q),
-            sarima_seasonal_order=(sarima_P, sarima_D, sarima_Q, sarima_s),
-            var_maxlags=int(request.form.get("var_lags", 15)),
-            models_to_train=models_to_train
+        
+        config = Config(
+            data_filename,
+            sarima_order,
+            sarima_seasonal_order,
+            var_maxlags,
+            test_size
         )
         
         # Inicializar progreso
@@ -429,7 +438,6 @@ def entrenamiento_proceso():
         # Por simplicidad, lo hacemos sincrónico
         progress_tracker.update_progress(0, '🚀 Iniciando proceso de entrenamiento...')
         try:
-            from app.train_models import train_and_save
             train_and_save()
             flash("Modelos entrenados exitosamente", "success")
         except Exception as e:

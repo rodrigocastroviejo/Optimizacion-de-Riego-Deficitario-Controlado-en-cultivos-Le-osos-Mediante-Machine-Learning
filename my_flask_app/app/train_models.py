@@ -22,32 +22,39 @@ from app.ml_models import SarimaModel, SarimaxModel, VarModel, LSTMModel
 DIR_APP = Path(__file__).resolve().parent
 BASE_DIR = DIR_APP.parent
 
-DATA_PATH = BASE_DIR / "uploads" / "datos_entrenamiento_fisico.csv"
+UPLOADS_PATH = BASE_DIR / "uploads" 
 MODELS_PATH = DIR_APP / "models"
 
 MODELS_PATH.mkdir(exist_ok=True)
 
 class Config:
-    SARIMA_ORDER = (1, 1, 1)
-    SARIMA_SEASONAL_ORDER = (1, 1, 1, 30)
-    VAR_MAXLAGS = 15
-    TEST_SIZE = 180
+    def __init__(self, data_filename, sarima_order, sarima_seasonal_order, var_maxlags, test_size):
+        self.data_filename = data_filename
+        self.SARIMA_ORDER = sarima_order
+        self.SARIMA_SEASONAL_ORDER = sarima_seasonal_order
+        self.VAR_MAXLAGS = var_maxlags
+        self.TEST_SIZE = test_size
 
 # =========================
 # FUNCIONES AUXILIARES
 # =========================
-def load_and_prepare_data(path: Path) -> pd.DataFrame:
+def load_and_prepare_data(data_filename) -> pd.DataFrame:
     """Cargar y preparar datos para entrenamiento"""
-    print(f"📂 Cargando datos de: {path}")
+
+    DATA_PATH = UPLOADS_PATH / data_filename
+
+    print(f"📂 Cargando datos de: {DATA_PATH}")
+
+
     
-    df = pd.read_csv(path)
+    df = pd.read_csv(DATA_PATH)
     
     # Detectar columna de fecha
     date_cols = [col for col in df.columns if 'fecha' in col.lower()]
     if date_cols:
-        df = pd.read_csv(path, parse_dates=[date_cols[0]], index_col=date_cols[0])
+        df = pd.read_csv(DATA_PATH, parse_dates=[date_cols[0]], index_col=date_cols[0])
     else:
-        df = pd.read_csv(path)
+        df = pd.read_csv(DATA_PATH)
         if 'Fecha' in df.columns:
             df['Fecha'] = pd.to_datetime(df['Fecha'])
             df.set_index('Fecha', inplace=True)
@@ -176,7 +183,7 @@ def train_and_save():
     print("🚀 Iniciando entrenamiento de modelos...")
     
     # 1. Cargar datos
-    df = load_and_prepare_data(DATA_PATH)
+    df = load_and_prepare_data(Config.data_filename)
     print(f"📈 Columnas disponibles: {df.columns.tolist()}")
     
     # 2. Dividir datos
