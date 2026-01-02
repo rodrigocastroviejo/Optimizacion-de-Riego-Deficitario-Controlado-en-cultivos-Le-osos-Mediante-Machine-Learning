@@ -17,7 +17,7 @@ $(document).ready(function() {
         
         // Enviar solicitud para iniciar predicción
         $.ajax({
-            url: '{{ url_for("main.prediccion_proceso") }}',
+            url: window.PREDICTION_PROCESS_URL,
             type: 'POST',
             data: {
                 horizon_days: horizonDays
@@ -46,7 +46,7 @@ $(document).ready(function() {
     // Función para obtener el progreso
     function fetchProgress() {
         $.ajax({
-            url: '{{ url_for("main.api_progreso_prediccion") }}',
+            url: window.API_PREDICTION_PROGRESS_URL,
             type: 'GET',
             success: function(data) {
                 updateUI(data);
@@ -232,7 +232,7 @@ $(document).ready(function() {
         
         // Redirigir después de 3 segundos
         setTimeout(() => {
-            window.location.href = '{{ url_for("main.prediccion_resultados") }}';
+            window.location.href =  window.PREDICTION_RESULTS_URL;
         }, 3000);
     }
     
@@ -260,7 +260,7 @@ $(document).ready(function() {
     $('#cancelBtn').click(function() {
         if (confirm('¿Estás seguro de que quieres cancelar la predicción?')) {
             clearInterval(progressInterval);
-            window.location.href = '{{ url_for("main.prediccion") }}';
+            window.location.href = window.PREDICTION_MAIN_URL;
         }
     });
     
