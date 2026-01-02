@@ -1,5 +1,5 @@
 from flask import session
-import datetime
+from datetime import datetime
 
 class Progress_tracker: 
     def __init__(self, process_tracked, total_steps):

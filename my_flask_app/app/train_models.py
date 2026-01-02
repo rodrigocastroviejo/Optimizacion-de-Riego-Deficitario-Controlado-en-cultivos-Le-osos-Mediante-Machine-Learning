@@ -16,8 +16,6 @@ register_custom_classes()
 
 from app.ml_models import SarimaModel, SarimaxModel, VarModel, LSTMModel
 
-from flask import session
-progress_tracker = session.get('entrenamiento', {})
 
 # =========================
 # CONFIGURACIÓN
@@ -260,6 +258,3 @@ def train_and_save():
     progress_tracker.update_progress(4, f"📁 Modelos guardados en: {MODELS_PATH}")            
 
            
-
-if __name__ == "__main__":
-    train_and_save()

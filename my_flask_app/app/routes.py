@@ -323,19 +323,7 @@ def descargar_predicciones():
         return redirect(url_for("main.prediccion"))
 
 
-@main.route("/api/modelos_disponibles")
-@login_required
-def modelos_disponibles():
-    """API para listar modelos disponibles"""
-    try:
-        models = load_all_models()
-        return jsonify({
-            "modelos": list(models.keys()),
-            "total": len(models)
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
+
 
 
 
@@ -388,6 +376,10 @@ def api_progreso_entrenamiento():
 @login_required
 def entrenamiento_proceso():
     """Ruta para iniciar el proceso de entrenamiento en segundo plano"""
+
+    # Inicializar progreso
+    progress_tracker = Progress_tracker("entrenamiento", 5)
+    
     try:
         # Obtener parámetros del formulario
         data_filename = request.form.get("data_file")
@@ -431,9 +423,6 @@ def entrenamiento_proceso():
             test_size
         )
         
-        # Inicializar progreso
-        progress_tracker = Progress_tracker("entrenamiento", 5)
-        
         # Ejecutar entrenamiento (en la práctica, esto debería ser en un hilo separado)
         # Por simplicidad, lo hacemos sincrónico
         progress_tracker.update_progress(0, '🚀 Iniciando proceso de entrenamiento...')
@@ -455,3 +444,5 @@ def entrenamiento_proceso():
         progress_tracker.update_progress(5, f'❌ Error en el proceso: {str(e)}')
         progress_tracker.complete_progress()
         return jsonify({'error': str(e)}), 500
+
+

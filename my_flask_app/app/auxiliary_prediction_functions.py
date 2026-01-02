@@ -1,5 +1,3 @@
-from app.progress_tracker import Progress_tracker
-
 import joblib
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -12,8 +10,7 @@ import pandas as pd
 import base64
 import io
 
-from flask import session
-progress_tracker = session.get('prediccion', {})
+
 
 
 MODELS_PATH = Path(__file__).resolve().parent / "models"
