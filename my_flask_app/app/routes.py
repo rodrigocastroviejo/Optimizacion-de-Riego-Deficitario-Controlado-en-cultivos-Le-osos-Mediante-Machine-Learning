@@ -23,6 +23,8 @@ from app.auxiliary_prediction_functions import load_all_models, load_latest_data
 
 from app.train_models import train_and_save, Config
 
+import traceback
+
 
 main = Blueprint("main", __name__)
 
@@ -140,7 +142,7 @@ def prediccion():
 def api_progreso_prediccion():
     """API para obtener el progreso actual de la predicción"""
     progress = session.get('prediccion', {})
-    
+
     # Calcular porcentaje general
     total_steps = progress.get('total_steps', 6)
     current_step = progress.get('current_step', 0)
@@ -168,44 +170,47 @@ def api_progreso_prediccion():
 @main.route("/prediccion/proceso", methods=["POST"])
 @login_required
 def prediccion_proceso():
+            
+    # Inicializar progreso
+    progress_tracker = Progress_tracker("prediccion", 6)
+    
+
     """Ruta para iniciar el proceso de predicción en segundo plano"""
     try:
         # Obtener parámetros
         horizon_days = int(request.form.get("horizon_days", 30))
         horizon_days = min(horizon_days, 365)
-        
-        # Inicializar progreso
-        progress_tracker = Progress_tracker("prediccion", 6)
+
         
         # Ejecutar predicción (en la práctica, esto debería ser en un hilo separado)
         # Por simplicidad, lo hacemos sincrónico
         progress_tracker.update_progress(0, '🚀 Iniciando proceso de predicción...')
         
         # Paso 1: Cargar modelos
-        models = load_all_models()
+        models, progress_tracker = load_all_models(progress_tracker)
         if not models:
             progress_tracker.update_progress(1, '❌ No se pudieron cargar modelos')
             progress_tracker.complete_progress()
             return jsonify({'error': 'No se encontraron modelos entrenados'}), 400
         
         # Paso 2: Cargar datos
-        last_data = load_latest_data()
+        last_data, progress_tracker = load_latest_data(progress_tracker)
         
         # Paso 3: Hacer predicciones
-        predictions = make_predictions(models, last_data, horizon_days)
+        predictions, progress_tracker = make_predictions(models, last_data, horizon_days, progress_tracker)
         if not predictions:
             progress_tracker.update_progress(3, '❌ No se pudieron generar predicciones')
             progress_tracker.complete_progress()
             return jsonify({'error': 'No se pudieron generar predicciones'}), 400
         
         # Paso 4: Unificar predicciones
-        unified_predictions = unify_predictions(predictions, horizon_days)
+        unified_predictions, progress_tracker = unify_predictions(predictions, horizon_days, progress_tracker)
         
         # Paso 5: Calcular riego
-        irrigation_df = calculate_irrigation(unified_predictions)
+        irrigation_df, progress_tracker = calculate_irrigation(unified_predictions, progress_tracker)
         
         # Paso 6: Crear gráficos
-        plots = create_prediction_plots(unified_predictions, irrigation_df, last_data)
+        plots, progress_tracker = create_prediction_plots(unified_predictions, irrigation_df, last_data, progress_tracker)
         
         # Guardar resultados en sesión
         session['predictions_data'] = unified_predictions.to_json()
@@ -223,7 +228,7 @@ def prediccion_proceso():
         })
         
     except Exception as e:
-        progress_tracker.update_progress(0, f'❌ Error en el proceso: {str(e)}')
+        progress_tracker.update_progress(0, f'❌ LALALLAError en el proceso: {str(e)}')
         progress_tracker.complete_progress()
         return jsonify({'error': str(e)}), 500
 
@@ -258,7 +263,7 @@ def prediccion_resultados():
         table_data = irrigation_df.head(15).to_dict('records')
         
         # Limpiar sesión
-        session.pop('prediction_progress', None)
+        session.pop('prediccion', None)
         
         return render_template("prediction.html",
                              plots=plots,
@@ -321,9 +326,6 @@ def descargar_predicciones():
         print(f"❌ Error al descargar: {str(e)}")
         flash(f"Error al descargar: {str(e)}", "danger")
         return redirect(url_for("main.prediccion"))
-
-
-
 
 
 

@@ -16,7 +16,7 @@ class Progress_tracker:
         }
         session.modified = True
 
-
+    
     def update_progress(self, step, message, is_substep=False, substep_total=0):
         """Actualizar el progreso en la sesión"""
         progress = session[self.process_tracked]

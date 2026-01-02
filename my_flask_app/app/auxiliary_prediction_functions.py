@@ -11,8 +11,6 @@ import base64
 import io
 
 
-
-
 MODELS_PATH = Path(__file__).resolve().parent / "models"
 UPLOAD_FOLDER = "uploads"
 
@@ -27,20 +25,22 @@ sns.set_palette("husl")
 
 
 
-def load_all_models():
+def load_all_models(progress_tracker):
     """Cargar modelos con actualización de progreso"""
     progress_tracker.update_progress(1, '🔍 Buscando modelos entrenados...')
     
     models = {}
     if not MODELS_PATH.exists():
         progress_tracker.update_progress(1, f'❌ Directorio no encontrado: {MODELS_PATH}')
-        return models
+        return models, progress_tracker
+
     
     model_files = list(MODELS_PATH.glob("*.pkl"))
     
     if not model_files:
         progress_tracker.update_progress(1, '❌ No se encontraron archivos .pkl')
-        return models
+        return models, progress_tracker
+
     
     progress_tracker.update_progress(1, f'📁 Encontrados {len(model_files)} archivos .pkl')
     
@@ -59,9 +59,9 @@ def load_all_models():
                            is_substep=True, substep_total=len(model_files))
     
     progress_tracker.update_progress(1, f'📊 Total modelos cargados: {len(models)}')
-    return models
+    return models, progress_tracker
 
-def load_latest_data():
+def load_latest_data(progress_tracker):
     """Cargar datos con actualización de progreso"""
     progress_tracker.update_progress(2, '📂 Buscando archivos de datos...')
     
@@ -105,19 +105,21 @@ def load_latest_data():
             progress_tracker.update_progress(2, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}', 
                            is_substep=True, substep_total=3)
         
-        return df
+        return df, progress_tracker
+
         
     except Exception as e:
         progress_tracker.update_progress(2, f'❌ Error cargando datos: {str(e)}')
         raise
 
-def make_predictions(models_dict, last_data, horizon_days):
+def make_predictions(models_dict, last_data, horizon_days, progress_tracker):
     """Realizar predicciones con actualización de progreso"""
     predictions = {}
     
     if not models_dict:
         progress_tracker.update_progress(3, '❌ No hay modelos cargados para hacer predicciones')
-        return predictions
+        return predictions, progress_tracker
+
     
     progress_tracker.update_progress(3, f'🎯 Generando predicciones para {horizon_days} días')
     
@@ -182,15 +184,17 @@ def make_predictions(models_dict, last_data, horizon_days):
             progress_tracker.update_progress(3, f'      ❌ Error en LSTM: {str(e)}')
     
     progress_tracker.update_progress(3, f'🎉 Total predicciones generadas: {len(predictions)}')
-    return predictions
+    return predictions, progress_tracker
 
-def unify_predictions(predictions_dict, horizon_days):
+
+def unify_predictions(predictions_dict, horizon_days, progress_tracker):
     """Unificar predicciones con actualización de progreso"""
     progress_tracker.update_progress(4, '🔄 Unificando predicciones...')
     
     if not predictions_dict:
         progress_tracker.update_progress(4, '❌ No hay predicciones para unificar')
-        return pd.DataFrame()
+        return pd.DataFrame(), progress_tracker
+
     
     # Mostrar qué predicciones se van a unificar
     sarima_predictions = [k for k in predictions_dict.keys() if not k.startswith(('VAR_', 'LSTM_', 'SARIMA'))]
@@ -220,15 +224,17 @@ def unify_predictions(predictions_dict, horizon_days):
     progress_tracker.update_progress(4, f'📊 DataFrame unificado: {unified_df.shape[0]} filas × {unified_df.shape[1]} columnas')
     progress_tracker.update_progress(4, '✅ Predicciones unificadas exitosamente')
     
-    return unified_df
+    return unified_df, progress_tracker
 
-def calculate_irrigation(predictions_df):
+
+def calculate_irrigation(predictions_df, progress_tracker):
     """Calcular riego con actualización de progreso"""
     progress_tracker.update_progress(5, '💧 Calculando necesidades de riego...')
     
     if predictions_df.empty:
         progress_tracker.update_progress(5, '❌ No hay datos para calcular riego')
-        return pd.DataFrame()
+        return pd.DataFrame(), progress_tracker
+
     
     # Mostrar fórmula de cálculo
     progress_tracker.update_progress(5, '📐 Fórmula aplicada:')
@@ -285,9 +291,10 @@ def calculate_irrigation(predictions_df):
     progress_tracker.update_progress(5, f'📈 Riego total: {irrigation_df["Riego_mm"].sum():.2f} mm')
     progress_tracker.update_progress(5, f'📊 Riego promedio: {irrigation_df["Riego_mm"].mean():.2f} mm/día')
     
-    return irrigation_df
+    return irrigation_df, progress_tracker
 
-def create_prediction_plots(predictions_df, irrigation_df, last_data):
+
+def create_prediction_plots(predictions_df, irrigation_df, last_data, progress_tracker):
     """Crear gráficos con actualización de progreso"""
     progress_tracker.update_progress(6, '🎨 Generando visualizaciones...')
     
@@ -352,4 +359,4 @@ def create_prediction_plots(predictions_df, irrigation_df, last_data):
         progress_tracker.update_progress(6, f'  ❌ Error en gráfico de variables: {e}')
     
     progress_tracker.update_progress(6, '✅ Visualizaciones completadas', is_substep=True, substep_total=3)
-    return plots
+    return plots, progress_tracker
