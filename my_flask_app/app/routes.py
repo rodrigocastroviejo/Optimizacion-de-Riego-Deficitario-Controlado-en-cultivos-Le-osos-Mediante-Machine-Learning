@@ -342,6 +342,7 @@ def entrenamiento():
     # GET request - mostrar formulario
     return render_template("training.html", show_results=False)
 
+
 @main.route("/api/progreso_entrenamiento")
 @login_required
 def api_progreso_entrenamiento():
@@ -437,7 +438,6 @@ def entrenamiento_proceso():
         
         return jsonify({
             'success': True,
-            'redirect_url': url_for('main.entrenamiento_resultados')
         })
         
     except Exception as e:
@@ -450,11 +450,9 @@ def entrenamiento_proceso():
 @login_required
 def api_archivos_datos():
     """API para obtener archivos de datos disponibles"""
-    import os
-    import time
-    from pathlib import Path
     
     uploads_dir = Path(current_app.config["UPLOAD_FOLDER"])
+    print(uploads_dir)
     data_files = []
     
     if uploads_dir.exists():
@@ -465,7 +463,6 @@ def api_archivos_datos():
                 file_info = {
                     'name': file_path.name,
                     'size': file_path.stat().st_size,
-                    'modified': time.ctime(file_path.stat().st_mtime),
                     'columns': df.columns.tolist(),
                     'rows': sum(1 for _ in open(file_path)) - 1  # Excluir encabezado
                 }
@@ -479,11 +476,10 @@ def api_archivos_datos():
 @login_required
 def api_modelos_disponibles():
     """API para listar modelos disponibles"""
-    models_dir = Path(__file__).resolve().parent / "models"
     modelos = []
     
-    if models_dir.exists():
-        for file_path in models_dir.glob("*.pkl"):
+    if MODELS_PATH.exists():
+        for file_path in MODELS_PATH.glob("*.pkl"):
             modelos.append(file_path.name)
     
     return jsonify({'modelos': modelos})
