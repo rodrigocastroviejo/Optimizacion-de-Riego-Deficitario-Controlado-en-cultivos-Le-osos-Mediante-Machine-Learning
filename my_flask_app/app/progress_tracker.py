@@ -1,6 +1,5 @@
 from flask import session
-from datetime import datetime
-
+import time
 class Progress_tracker: 
     def __init__(self, process_tracked, total_steps):
         """Inicializar el tracker de progreso """
@@ -11,7 +10,7 @@ class Progress_tracker:
             'current_message': f'Iniciando {self.process_tracked}...',
             'step_messages': [],
             'is_complete': False,
-            'start_time': datetime.now(),
+            'start_time': time.time(),
             'current_substep': 0,
             'total_substeps': 0
         }
@@ -33,7 +32,7 @@ class Progress_tracker:
             progress['current_message'] = message
         
         progress['step_messages'].append({
-            'timestamp': datetime.now().strftime('%H:%M:%S'),
+            'timestamp': time.time(),
             'message': message
         })
         
@@ -50,7 +49,7 @@ class Progress_tracker:
         progress = session[self.process_tracked]
 
         progress['is_complete'] = True
-        progress['elapsed_time'] = datetime.now() - progress['start_time']
+        progress['elapsed_time'] = time.time() - progress['start_time']
 
         session[self.process_tracked] = progress
         session.modified = True
