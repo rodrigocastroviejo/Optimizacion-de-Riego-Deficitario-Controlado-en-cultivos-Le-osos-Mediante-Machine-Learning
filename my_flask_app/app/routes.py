@@ -446,3 +446,44 @@ def entrenamiento_proceso():
         return jsonify({'error': str(e)}), 500
 
 
+@main.route("/api/archivos_datos")
+@login_required
+def api_archivos_datos():
+    """API para obtener archivos de datos disponibles"""
+    import os
+    import time
+    from pathlib import Path
+    
+    uploads_dir = Path(current_app.config["UPLOAD_FOLDER"])
+    data_files = []
+    
+    if uploads_dir.exists():
+        for file_path in uploads_dir.glob("*.csv"):
+            try:
+                # Leer información básica del archivo
+                df = pd.read_csv(file_path, nrows=1)
+                file_info = {
+                    'name': file_path.name,
+                    'size': file_path.stat().st_size,
+                    'modified': time.ctime(file_path.stat().st_mtime),
+                    'columns': df.columns.tolist(),
+                    'rows': sum(1 for _ in open(file_path)) - 1  # Excluir encabezado
+                }
+                data_files.append(file_info)
+            except Exception as e:
+                print(f"Error leyendo {file_path}: {e}")
+    
+    return jsonify({'files': data_files})
+
+@main.route("/api/modelos_disponibles")
+@login_required
+def api_modelos_disponibles():
+    """API para listar modelos disponibles"""
+    models_dir = Path(__file__).resolve().parent / "models"
+    modelos = []
+    
+    if models_dir.exists():
+        for file_path in models_dir.glob("*.pkl"):
+            modelos.append(file_path.name)
+    
+    return jsonify({'modelos': modelos})
