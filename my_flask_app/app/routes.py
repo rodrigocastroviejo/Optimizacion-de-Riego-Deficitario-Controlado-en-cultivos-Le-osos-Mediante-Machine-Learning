@@ -163,7 +163,7 @@ def prediccion_proceso():
         
 
         # Paso 1: Cargar modelos
-        models, progress_tracker = load_all_models(progress_tracker)
+        models = load_all_models(progress_tracker)
         if not models:
             progress_tracker.update_progress(1, '❌ No se pudieron cargar modelos')
             progress_tracker.complete_progress()
@@ -171,23 +171,23 @@ def prediccion_proceso():
         
 
         # Paso 2: Cargar datos
-        last_data, progress_tracker = load_latest_data(progress_tracker)
+        last_data = load_latest_data(progress_tracker)
         
         # Paso 3: Hacer predicciones
-        predictions, progress_tracker = make_predictions(models, last_data, horizon_days, progress_tracker)
+        predictions = make_predictions(models, last_data, horizon_days, progress_tracker)
         if not predictions:
             progress_tracker.update_progress(3, '❌ No se pudieron generar predicciones')
             progress_tracker.complete_progress()
             return jsonify({'error': 'No se pudieron generar predicciones'}), 400
         
         # Paso 4: Unificar predicciones
-        unified_predictions, progress_tracker = unify_predictions(predictions, horizon_days, progress_tracker)
+        unified_predictions = unify_predictions(predictions, horizon_days, progress_tracker)
         
         # Paso 5: Calcular riego
-        irrigation_df, progress_tracker = calculate_irrigation(unified_predictions, progress_tracker)
+        irrigation_df = calculate_irrigation(unified_predictions, progress_tracker)
         
         # Paso 6: Crear gráficos
-        plots, progress_tracker = create_prediction_plots(unified_predictions, irrigation_df, last_data, progress_tracker)
+        plots = create_prediction_plots(unified_predictions, irrigation_df, last_data, progress_tracker)
         
         # Guardar resultados en sesión
         PREDICTION_RESULTS['predictions_data'] = unified_predictions.to_json()
@@ -390,7 +390,7 @@ def entrenamiento_proceso():
         # Por simplicidad, lo hacemos sincrónico
         progress_tracker.update_progress(0, '🚀 Iniciando proceso de entrenamiento...')
         try:
-            train_and_save()
+            train_and_save(progress_tracker)
             flash("Modelos entrenados exitosamente", "success")
         except Exception as e:
             flash(f"Error entrenando modelos: {str(e)}", "danger")

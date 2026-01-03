@@ -62,7 +62,7 @@ def load_all_models(progress_tracker):
                            is_substep=True, substep_total=len(model_files))
     
     progress_tracker.update_progress(1, f'📊 Total modelos cargados: {len(models)}')
-    return models, progress_tracker
+    return models
 
 def load_latest_data(progress_tracker):
     """Cargar datos con actualización de progreso"""
@@ -108,7 +108,7 @@ def load_latest_data(progress_tracker):
             progress_tracker.update_progress(2, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}', 
                            is_substep=True, substep_total=3)
         
-        return df, progress_tracker
+        return df
 
         
     except Exception as e:
@@ -121,7 +121,7 @@ def make_predictions(models_dict, last_data, horizon_days, progress_tracker):
     
     if not models_dict:
         progress_tracker.update_progress(3, '❌ No hay modelos cargados para hacer predicciones')
-        return predictions, progress_tracker
+        return predictions
 
     
     progress_tracker.update_progress(3, f'🎯 Generando predicciones para {horizon_days} días')
@@ -187,7 +187,7 @@ def make_predictions(models_dict, last_data, horizon_days, progress_tracker):
             progress_tracker.update_progress(3, f'      ❌ Error en LSTM: {str(e)}')
     
     progress_tracker.update_progress(3, f'🎉 Total predicciones generadas: {len(predictions)}')
-    return predictions, progress_tracker
+    return predictions
 
 
 def unify_predictions(predictions_dict, horizon_days, progress_tracker):
@@ -196,7 +196,7 @@ def unify_predictions(predictions_dict, horizon_days, progress_tracker):
     
     if not predictions_dict:
         progress_tracker.update_progress(4, '❌ No hay predicciones para unificar')
-        return pd.DataFrame(), progress_tracker
+        return pd.DataFrame()
 
     
     # Mostrar qué predicciones se van a unificar
@@ -227,7 +227,7 @@ def unify_predictions(predictions_dict, horizon_days, progress_tracker):
     progress_tracker.update_progress(4, f'📊 DataFrame unificado: {unified_df.shape[0]} filas × {unified_df.shape[1]} columnas')
     progress_tracker.update_progress(4, '✅ Predicciones unificadas exitosamente')
     
-    return unified_df, progress_tracker
+    return unified_df
 
 
 def calculate_irrigation(predictions_df, progress_tracker):
@@ -236,7 +236,7 @@ def calculate_irrigation(predictions_df, progress_tracker):
     
     if predictions_df.empty:
         progress_tracker.update_progress(5, '❌ No hay datos para calcular riego')
-        return pd.DataFrame(), progress_tracker
+        return pd.DataFrame()
 
     
     # Mostrar fórmula de cálculo
@@ -294,7 +294,7 @@ def calculate_irrigation(predictions_df, progress_tracker):
     progress_tracker.update_progress(5, f'📈 Riego total: {irrigation_df["Riego_mm"].sum():.2f} mm')
     progress_tracker.update_progress(5, f'📊 Riego promedio: {irrigation_df["Riego_mm"].mean():.2f} mm/día')
     
-    return irrigation_df, progress_tracker
+    return irrigation_df
 
 
 def create_prediction_plots(predictions_df, irrigation_df, last_data, progress_tracker):
@@ -362,4 +362,4 @@ def create_prediction_plots(predictions_df, irrigation_df, last_data, progress_t
         progress_tracker.update_progress(6, f'  ❌ Error en gráfico de variables: {e}')
     
     progress_tracker.update_progress(6, '✅ Visualizaciones completadas', is_substep=True, substep_total=3)
-    return plots, progress_tracker
+    return plots

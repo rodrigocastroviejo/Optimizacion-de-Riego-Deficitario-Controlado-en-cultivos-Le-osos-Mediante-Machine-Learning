@@ -39,7 +39,7 @@ class Config:
 # =========================
 # FUNCIONES AUXILIARES
 # =========================
-def load_and_prepare_data(data_filename) -> pd.DataFrame:
+def load_and_prepare_data(data_filename, progress_tracker) -> pd.DataFrame:
     """Cargar y preparar datos para entrenamiento"""
 
     DATA_PATH = UPLOADS_PATH / data_filename
@@ -77,7 +77,7 @@ def load_and_prepare_data(data_filename) -> pd.DataFrame:
         
     return df
 
-def temporal_train_test_split(df, test_size):
+def temporal_train_test_split(df, test_size, progress_tracker):
     """Dividir datos en train/test temporalmente"""
     split = len(df) - test_size
     train_df = df.iloc[:split]
@@ -194,13 +194,13 @@ def create_lstm_pipeline(df):
 # =========================
 # ENTRENAMIENTO
 # =========================
-def train_and_save():
+def train_and_save(progress_tracker):
     """Función principal para entrenar y guardar modelos"""    
     # 1. Cargar datos
-    df = load_and_prepare_data(Config.data_filename)
+    df = load_and_prepare_data(Config.data_filename, progress_tracker)
     
     # 2. Dividir datos
-    train_df, test_df = temporal_train_test_split(df, Config.TEST_SIZE)
+    train_df, test_df = temporal_train_test_split(df, Config.TEST_SIZE, progress_tracker)
     
     # 3. Crear pipelines
     progress_tracker.update_progress(3, "\n🔨 Creando pipelines...")
