@@ -10,8 +10,6 @@ $(document).ready(function() {
     
     // Función para iniciar el proceso
     function startPredictionProcess() {
-        console.log("🚀 Iniciando proceso de predicción....");
-        
         // Obtener horizon_days del formulario anterior (almacenado en localStorage)
         const horizonDays = localStorage.getItem('prediction_horizon') || 30;
         
@@ -40,9 +38,7 @@ $(document).ready(function() {
     
     // Función para monitorear el progreso
     function startProgressMonitoring() {
-        progressInterval = setInterval(fetchProgress, 1000);
-        console.log("interval")
-
+        progressInterval = setInterval(fetchProgress, 5000);
     }
     
     // Función para obtener el progreso
@@ -77,23 +73,22 @@ $(document).ready(function() {
         
         // Actualizar paso actual
         $('#currentStep').text(progress.current_message);
-                console.log("1 ")
+               
 
         // Actualizar pasos individuales
         updateSteps(progress);
-                console.log("11 ")
+                
 
         // Actualizar consola de mensajes
         updateConsole(progress.step_messages);
-                console.log("2")
+                
 
         // Actualizar contadores
         updateCounters(progress.step_messages);
-                console.log("3")
 
         // Actualizar tiempo transcurrido
         updateElapsedTime();
-                console.log("4 ")
+
 
     }
     
@@ -240,10 +235,10 @@ $(document).ready(function() {
         // Mostrar mensaje de completado
         $('#completionMessage').fadeIn();
         
-        // Redirigir después de 3 segundos
-        //setTimeout(() => {
-        //    window.location.href =  window.PREDICTION_RESULTS_URL;
-        //}, 3000);
+        // Redirigir después de 5 segundos
+        setTimeout(() => {
+            window.location.href =  window.PREDICTION_RESULTS_URL;
+        }, 5000);
     }
     
     // Función para mostrar error

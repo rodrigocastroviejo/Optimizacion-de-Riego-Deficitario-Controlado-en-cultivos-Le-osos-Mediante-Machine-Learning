@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import base64
 import io
+import os
 
 
 MODELS_PATH = Path(__file__).resolve().parent / "models"
@@ -41,6 +42,7 @@ def load_all_models(progress_tracker):
         progress_tracker.update_progress(1, '❌ No se encontraron archivos .pkl')
         return models, progress_tracker
 
+
     
     progress_tracker.update_progress(1, f'📁 Encontrados {len(model_files)} archivos .pkl')
     
@@ -51,6 +53,7 @@ def load_all_models(progress_tracker):
         
         try:
             model = joblib.load(file_path)
+
             models[model_name] = model
             progress_tracker.update_progress(1, f'    ✅ {model_name} cargado exitosamente',
                            is_substep=True, substep_total=len(model_files))
