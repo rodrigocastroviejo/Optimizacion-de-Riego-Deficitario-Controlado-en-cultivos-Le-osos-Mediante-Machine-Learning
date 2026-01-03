@@ -225,5 +225,12 @@
 {% endblock %}
 
 {% block extra_js %}
+
+    <script>
+        window.PREDICTION_PROCESS_URL = "{{ url_for('main.prediccion_proceso') }}";
+        window.API_PREDICTION_PROGRESS_URL = "{{ url_for('main.api_progreso_prediccion') }}";
+        window.PREDICTION_RESULTS_URL = "{{ url_for('main.prediccion_resultados') }}";
+        window.PREDICTION_MAIN_URL = "{{ url_for('main.prediccion') }}";
+    </script>
     <script src="{{ url_for('static', filename='js/prediction_progress.js') }}"></script>
 {% endblock %}

@@ -1,55 +1,37 @@
-from flask import session
 import time
-class Progress_tracker: 
+from app.state import PREDICTION_PROGRESS
+
+class Progress_tracker:
     def __init__(self, process_tracked, total_steps):
-        """Inicializar el tracker de progreso """
-        self.process_tracked = process_tracked
-        session[self.process_tracked] = {
+        self.key = process_tracked
+
+        PREDICTION_PROGRESS[self.key] = {
             'current_step': 0,
             'total_steps': total_steps,
-            'current_message': f'Iniciando {self.process_tracked}...',
+            'current_message': 'Iniciando...',
             'step_messages': [],
             'is_complete': False,
             'start_time': time.time(),
             'current_substep': 0,
             'total_substeps': 0
         }
-        session.modified = True
-
 
     def update_progress(self, step, message, is_substep=False, substep_total=0):
-        """Actualizar el progreso en la sesión"""
-        progress = session[self.process_tracked]
+        p = PREDICTION_PROGRESS[self.key]
 
         if is_substep:
-            progress['current_substep'] += 1
-            if substep_total > 0:
-                progress['total_substeps'] = substep_total
+            p['current_substep'] += 1
+            p['total_substeps'] = substep_total
         else:
-            progress['current_substep'] = 0
-            progress['total_substeps'] = 0
-            progress['current_step'] = step
-            progress['current_message'] = message
-        
-        progress['step_messages'].append({
+            p['current_step'] = step
+            p['current_message'] = message
+            p['current_substep'] = 0
+            p['total_substeps'] = 0
+
+        p['step_messages'].append({
             'timestamp': time.time(),
             'message': message
         })
-        
-        # Mantener solo los últimos 50 mensajes
-        if len(progress['step_messages']) > 50:
-            progress['step_messages'] = progress['step_messages'][-50:]
-        
-        session[self.process_tracked] = progress
-        session.modified = True
 
     def complete_progress(self):
-        """Marcar la predicción como completa"""
-
-        progress = session[self.process_tracked]
-
-        progress['is_complete'] = True
-        progress['elapsed_time'] = time.time() - progress['start_time']
-
-        session[self.process_tracked] = progress
-        session.modified = True
+        PREDICTION_PROGRESS[self.key]['is_complete'] = True

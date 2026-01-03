@@ -10,14 +10,12 @@ $(document).ready(function() {
     
     // Función para iniciar el proceso
     function startPredictionProcess() {
-        console.log("🚀 Iniciando proceso de predicción...");
-        
         // Obtener horizon_days del formulario anterior (almacenado en localStorage)
         const horizonDays = localStorage.getItem('prediction_horizon') || 30;
         
         // Enviar solicitud para iniciar predicción
         $.ajax({
-            url: '{{ url_for("main.prediccion_proceso") }}',
+            url: window.PREDICTION_PROCESS_URL,
             type: 'POST',
             data: {
                 horizon_days: horizonDays
@@ -40,15 +38,16 @@ $(document).ready(function() {
     
     // Función para monitorear el progreso
     function startProgressMonitoring() {
-        progressInterval = setInterval(fetchProgress, 1000);
+        progressInterval = setInterval(fetchProgress, 5000);
     }
     
     // Función para obtener el progreso
     function fetchProgress() {
         $.ajax({
-            url: '{{ url_for("main.api_progreso_prediccion") }}',
+            url: window.API_PREDICTION_PROGRESS_URL,
             type: 'GET',
             success: function(data) {
+                console.log(data)
                 updateUI(data);
                 
                 // Si el proceso está completo
@@ -65,6 +64,7 @@ $(document).ready(function() {
     
     // Función para actualizar la UI
     function updateUI(progress) {
+
         // Actualizar barra de progreso principal
         const overallPercentage = progress.percentage;
         $('#overallPercentage').text(overallPercentage + '%');
@@ -73,29 +73,34 @@ $(document).ready(function() {
         
         // Actualizar paso actual
         $('#currentStep').text(progress.current_message);
-        
+               
+
         // Actualizar pasos individuales
-        updateSteps(progress.current_step, progress.total_steps);
-        
+        updateSteps(progress);
+                
+
         // Actualizar consola de mensajes
         updateConsole(progress.step_messages);
-        
+                
+
         // Actualizar contadores
         updateCounters(progress.step_messages);
-        
+
         // Actualizar tiempo transcurrido
         updateElapsedTime();
+
+
     }
     
     // Función para actualizar los pasos
-    function updateSteps(currentStep, totalSteps) {
+    function updateSteps(progress) {
         // Resetear todos los pasos
         $('.step-card').removeClass('active-step completed-step');
         $('.step-icon i').removeClass('text-primary text-success').addClass('text-muted');
         $('.step-progress-bar').css('width', '0%');
         
         // Marcar pasos completados
-        for (let i = 0; i < currentStep; i++) {
+        for (let i = 0; i < progress.current_step; i++) {
             const stepCard = $('#step' + i);
             stepCard.addClass('completed-step');
             stepCard.find('.step-icon i').removeClass('text-muted').addClass('text-success');
@@ -103,14 +108,14 @@ $(document).ready(function() {
         }
         
         // Marcar paso actual
-        if (currentStep < totalSteps) {
-            const currentStepCard = $('#step' + currentStep);
+        if (progress.current_step < progress.total_steps) {
+            const currentStepCard = $('#step' + progress.current_step);
             currentStepCard.addClass('active-step');
             currentStepCard.find('.step-icon i').removeClass('text-muted').addClass('text-primary');
             
             // Calcular progreso del paso actual
-            const progress = progress.current_substep / progress.total_substeps * 100;
-            currentStepCard.find('.step-progress-bar').css('width', progress + '%');
+            const progress_with_substep = progress.current_substep / progress.total_substeps * 100;
+            currentStepCard.find('.step-progress-bar').css('width', progress_with_substep + '%');
         }
     }
     
@@ -230,10 +235,10 @@ $(document).ready(function() {
         // Mostrar mensaje de completado
         $('#completionMessage').fadeIn();
         
-        // Redirigir después de 3 segundos
+        // Redirigir después de 5 segundos
         setTimeout(() => {
-            window.location.href = '{{ url_for("main.prediccion_resultados") }}';
-        }, 3000);
+            window.location.href =  window.PREDICTION_RESULTS_URL;
+        }, 5000);
     }
     
     // Función para mostrar error
@@ -260,7 +265,7 @@ $(document).ready(function() {
     $('#cancelBtn').click(function() {
         if (confirm('¿Estás seguro de que quieres cancelar la predicción?')) {
             clearInterval(progressInterval);
-            window.location.href = '{{ url_for("main.prediccion") }}';
+            window.location.href = window.PREDICTION_MAIN_URL;
         }
     });
     
