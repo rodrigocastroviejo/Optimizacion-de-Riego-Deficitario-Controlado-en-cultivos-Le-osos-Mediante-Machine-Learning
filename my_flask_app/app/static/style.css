@@ -274,3 +274,151 @@ header {
     }
 }
 
+
+/* ================================================ */
+/* ESTILOS PARA LA PÁGINA DE PROGRESO ENTRENAMIENTO */
+/* ================================================ */
+
+/* Animación de giro */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Tarjetas de pasos mejoradas */
+.step-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    height: 100%;
+}
+
+.step-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.step-card.active-step {
+    border-color: #4e54c8;
+    background: linear-gradient(135deg, rgba(78, 84, 200, 0.05), rgba(143, 148, 251, 0.05));
+}
+
+.step-card.completed-step {
+    border-color: #28a745;
+}
+
+/* Consola mejorada */
+.console-container {
+    background: #1e1e1e !important;
+    border-color: #495057 !important;
+}
+
+.console-line {
+    padding: 3px 0;
+    border-left: 3px solid transparent;
+    padding-left: 10px;
+    margin: 2px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.console-line:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Barras de progreso personalizadas */
+.progress-bar-striped {
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 40px 40px;
+}
+
+/* Badges mejorados */
+.badge.bg-success {
+    background: linear-gradient(135deg, #28a745, #6bdd87) !important;
+}
+
+.badge.bg-primary {
+    background: linear-gradient(135deg, #4e54c8, #8f94fb) !important;
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, #ffc107, #ffd967) !important;
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg, #17a2b8, #6ad1e3) !important;
+}
+
+/* Gráfico de dona animado */
+@keyframes donut-fill {
+    from { background: conic-gradient(#4e54c8 0%, #e9ecef 0%); }
+    to { background: conic-gradient(#4e54c8 var(--percentage), #e9ecef var(--percentage)); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .step-card {
+        margin-bottom: 1rem;
+    }
+    
+    .console-container {
+        height: 200px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    #donut-chart {
+        width: 120px !important;
+        height: 120px !important;
+    }
+    
+    #donut-chart::before {
+        width: 80px !important;
+        height: 80px !important;
+    }
+}
+
+/* Efectos de transición suaves */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar personalizado para consola */
+.console-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.console-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.console-container::-webkit-scrollbar-thumb {
+    background: #4e54c8;
+    border-radius: 4px;
+}
+
+.console-container::-webkit-scrollbar-thumb:hover {
+    background: #8f94fb;
+}
+
+/* Estilos para los iconos de emojis en consola */
+.console-line span[class*="text-"]:before {
+    margin-right: 5px;
+}
