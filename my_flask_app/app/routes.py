@@ -23,7 +23,7 @@ from app.auxiliary_prediction_functions import load_all_models, load_latest_data
 
 from app.train_models import train_and_save, Config
 
-from app.state import PREDICTION_PROGRESS
+from app.state import PREDICTION_PROGRESS, PREDICTION_RESULTS
 
 
 
@@ -190,10 +190,10 @@ def prediccion_proceso():
         plots, progress_tracker = create_prediction_plots(unified_predictions, irrigation_df, last_data, progress_tracker)
         
         # Guardar resultados en sesión
-        session['predictions_data'] = unified_predictions.to_json()
-        session['irrigation_data'] = irrigation_df.to_json()
-        session['horizon_days'] = horizon_days
-        session['prediction_plots'] = plots
+        PREDICTION_RESULTS['predictions_data'] = unified_predictions.to_json()
+        PREDICTION_RESULTS['irrigation_data'] = irrigation_df.to_json()
+        PREDICTION_RESULTS['horizon_days'] = horizon_days
+        PREDICTION_RESULTS['prediction_plots'] = plots
         
         # Completar progreso
         progress_tracker.update_progress(6, '✅ ¡Predicción completada exitosamente!')
@@ -213,17 +213,20 @@ def prediccion_proceso():
 @login_required
 def prediccion_resultados():
     """Mostrar resultados de la predicción completada"""
-    if 'predictions_data' not in session:
+    if 'predictions_data' not in PREDICTION_RESULTS:
         flash("No hay resultados de predicción disponibles", "warning")
         return redirect(url_for("main.prediccion"))
     
     try:
         # Cargar datos de la sesión
-        unified_predictions = pd.read_json(session['predictions_data'])
-        irrigation_df = pd.read_json(session['irrigation_data'])
-        horizon_days = session.get('horizon_days', 30)
-        plots = session.get('prediction_plots', {})
+        unified_predictions = pd.read_json(PREDICTION_RESULTS['predictions_data'])
+        irrigation_df = pd.read_json(PREDICTION_RESULTS['irrigation_data'])
+        horizon_days = PREDICTION_RESULTS['horizon_days']
+        plots = PREDICTION_RESULTS['prediction_plots']
         
+
+
+
         # Preparar datos para la vista
         prediction_summary = {
             'total_dias': horizon_days,
@@ -236,11 +239,15 @@ def prediccion_resultados():
             'riego_minimo': round(irrigation_df['Riego_mm'].min(), 2)
         }
         
-        # Preparar datos para tabla
-        table_data = irrigation_df.head(15).to_dict('records')
-        
-        # Limpiar sesión
-        session.pop('prediccion', None)
+        # Tomar las primeras 15 filas
+        table_df = irrigation_df.head(15).copy()
+
+        # Asegurarse de que 'Fecha' es datetime
+        table_df['Fecha'] = pd.to_datetime(table_df['Fecha'])
+
+        # Convertir a lista de diccionarios
+        table_data = table_df.to_dict('records')
+
         
         return render_template("prediction.html",
                              plots=plots,
