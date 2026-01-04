@@ -558,5 +558,10 @@
 
 
 {% block extra_js %}
+    <script>
+        window.TRAINING_PROCESS_URL = "{{ url_for('main.entrenamiento_proceso') }}";
+        window.TRAINING_PROGRESS_URL = "{{ url_for('main.entrenamiento_progreso') }}";
+    </script>
+
     <script src="{{ url_for('static', filename='js/training.js') }}"></script>
 {% endblock %}
