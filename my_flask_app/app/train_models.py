@@ -117,7 +117,7 @@ def create_custom_scaler(df):
 # =========================
 # PIPELINES
 # =========================
-def create_sarima_pipelines(df):
+def create_sarima_pipelines(df, config):
     """Crear pipelines SARIMA para cada variable"""
     pipelines = {}
     scaler = create_custom_scaler(df)
@@ -130,14 +130,14 @@ def create_sarima_pipelines(df):
             ("scaler", scaler),
             ("sarima", SarimaModel(
                 column=col,
-                order=Config.SARIMA_ORDER,
-                seasonal_order=Config.SARIMA_SEASONAL_ORDER,
+                order=config.SARIMA_ORDER,
+                seasonal_order=config.SARIMA_SEASONAL_ORDER,
             ))
         ])
     
     return pipelines
 
-def create_sarimax_pipelines(df):
+def create_sarimax_pipelines(df, config):
     """Crear pipelines SARIMAX para cada variable"""
     pipelines = {}
     scaler = create_custom_scaler(df)
@@ -154,21 +154,21 @@ def create_sarimax_pipelines(df):
             ("sarimax", SarimaxModel(
                 target_col=target,
                 exog_cols=exog,
-                order=Config.SARIMA_ORDER,
-                seasonal_order=Config.SARIMA_SEASONAL_ORDER,
+                order=config.SARIMA_ORDER,
+                seasonal_order=config.SARIMA_SEASONAL_ORDER,
             ))
         ])
     
     return pipelines
 
-def create_var_pipeline(df):
+def create_var_pipeline(df, config):
     """Crear pipeline VAR multivariante"""
     print("🔄 Creando pipeline VAR multivariante")
     scaler = create_custom_scaler(df)
     
     return Pipeline([
         ("scaler", scaler),
-        ("var", VarModel(maxlags=Config.VAR_MAXLAGS)),
+        ("var", VarModel(maxlags=config.VAR_MAXLAGS)),
     ])
 
 def create_lstm_pipeline(df):
@@ -194,13 +194,13 @@ def create_lstm_pipeline(df):
 # =========================
 # ENTRENAMIENTO
 # =========================
-def train_and_save(progress_tracker):
+def train_and_save(progress_tracker, config):
     """Función principal para entrenar y guardar modelos"""    
     # 1. Cargar datos
-    df = load_and_prepare_data(Config.data_filename, progress_tracker)
+    df = load_and_prepare_data(config.data_filename, progress_tracker)
     
     # 2. Dividir datos
-    train_df, test_df = temporal_train_test_split(df, Config.TEST_SIZE, progress_tracker)
+    train_df, test_df = temporal_train_test_split(df, config.TEST_SIZE, progress_tracker)
     
     # 3. Crear pipelines
     progress_tracker.update_progress(3, "\n🔨 Creando pipelines...")
@@ -208,15 +208,15 @@ def train_and_save(progress_tracker):
     pipelines = {}
     
     # SARIMA pipelines
-    sarima_pipes = create_sarima_pipelines(train_df)
+    sarima_pipes = create_sarima_pipelines(train_df, config)
     pipelines.update(sarima_pipes)
     
     # SARIMAX pipelines (opcional, comentar si es muy lento)
-    # sarimax_pipes = create_sarimax_pipelines(train_df)
+    # sarimax_pipes = create_sarimax_pipelines(train_df, config)
     # pipelines.update(sarimax_pipes)
     
     # VAR pipeline
-    var_pipe = create_var_pipeline(train_df)
+    var_pipe = create_var_pipeline(train_df, config)
     pipelines["var_multivariate"] = var_pipe
     
     # LSTM pipeline (opcional, comentar si no tienes tensorflow)
