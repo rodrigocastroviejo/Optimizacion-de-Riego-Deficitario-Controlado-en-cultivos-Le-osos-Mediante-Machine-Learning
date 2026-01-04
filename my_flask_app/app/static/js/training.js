@@ -346,17 +346,19 @@ $(document).ready(function() {
         formData.append('sarima_s', $('#sarima_s').val());
         formData.append('var_maxlags', $('#var_maxlags').val());
         
+        // Redirigir a la página de progreso
+        window.location.href = window.TRAINING_PROGRESS_URL;
+
         // Enviar solicitud
         $.ajax({
-            url: '{{ url_for("main.entrenamiento_proceso") }}',
+            url: window.TRAINING_PROCESS_URL,
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
             success: function(response) {
                 if (response.success) {
-                    // Redirigir a la página de progreso
-                    window.location.href = '{{ url_for("main.entrenamiento_progreso") }}';
+                    console.log("✅ Entrenamiento exitoso!")
                 } else {
                     showError(response.error || 'Error al iniciar el entrenamiento');
                     $('#startTrainingBtn').prop('disabled', false).html('<i class="fas fa-play me-2"></i>Iniciar Entrenamiento');

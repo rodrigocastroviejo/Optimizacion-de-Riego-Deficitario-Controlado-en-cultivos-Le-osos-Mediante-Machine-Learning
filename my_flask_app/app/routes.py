@@ -317,16 +317,17 @@ def descargar_predicciones():
 # RUTAS DE ENTRENAMIENTO
 # ======================
 
-@main.route("/entrenamiento", methods=["GET", "POST"])
+@main.route("/entrenamiento", methods=["GET"])
 @login_required
 def entrenamiento():
     """Ruta principal de predicciones"""
-    if request.method == "POST":
-        # Redirigir a la página de progreso
-        return render_template("train_progress.html")
-    
-    # GET request - mostrar formulario
     return render_template("training.html", show_results=False)
+
+@main.route("/entrenamiento/progreso")
+@login_required
+def entrenamiento_progreso():
+    """Página para monitorear el progreso del entrenamiento"""
+    return render_template("train_progress.html")
 
 
 @main.route("/api/progreso_entrenamiento")
@@ -377,7 +378,6 @@ def entrenamiento_proceso():
         sarima_seasonal_order = (sarima_p, sarima_d, sarima_q, sarima_s)
 
         # Crear configuración
-        
         config = Config(
             data_filename,
             sarima_order,
@@ -390,7 +390,7 @@ def entrenamiento_proceso():
         # Por simplicidad, lo hacemos sincrónico
         progress_tracker.update_progress(0, '🚀 Iniciando proceso de entrenamiento...')
         try:
-            train_and_save(progress_tracker)
+            train_and_save(progress_tracker, config)
             flash("Modelos entrenados exitosamente", "success")
         except Exception as e:
             flash(f"Error entrenando modelos: {str(e)}", "danger")
