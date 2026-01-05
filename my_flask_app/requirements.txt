@@ -3,3 +3,12 @@ flask_SQLalchemy
 flask_migrate
 psycopg2-binary
 flask-login
+numpy
+pandas
+scikit-learn
+joblib
+statsmodels
+tensorflow
+seaborn
+matplotlib
+openpyxl
