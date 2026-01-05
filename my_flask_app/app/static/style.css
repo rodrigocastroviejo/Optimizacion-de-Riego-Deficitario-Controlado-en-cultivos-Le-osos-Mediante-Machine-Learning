@@ -1,0 +1,424 @@
+body { 
+  font-family: 'Segoe UI', Roboto, sans-serif; 
+} 
+
+footer { 
+  font-size: 0.9rem; 
+} 
+
+.card { 
+  border-radius: 0.75rem; 
+}
+
+header {
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+}
+
+/* Menú desplegable lateral */
+#menuDesplegable {
+  transition: height 0.3s ease;
+}
+
+/* Enlaces del menú */
+#menuDesplegable .nav-link {
+  padding: 0.5rem 0;
+  transition: color 0.2s ease;
+}
+
+#menuDesplegable .nav-link:hover {
+  color: #ffc107;
+}
+
+/*========================================*/
+/* Estilos para el progreso de predicción */
+/*========================================*/
+
+.progress-bar-animated {
+    animation: progress-animation 1s linear infinite;
+}
+
+@keyframes progress-animation {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 0; }
+}
+
+.step-card {
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+.step-card.active-step {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 2px solid #4e54c8;
+}
+
+.step-card.completed-step {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.step-progress-bar {
+    background: linear-gradient(90deg, #4e54c8, #8f94fb);
+    transition: width 0.5s ease;
+}
+
+.console-line {
+    border-left: 3px solid #28a745;
+    padding-left: 10px;
+    margin-bottom: 5px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+
+.progress-text {
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* ======================================= */
+/* ESTILOS ESPECÍFICOS PARA ENTRENAMIENTO */
+/* ======================================= */
+
+/* Números de paso */
+.step-number {
+    width: 36px;
+    height: 36px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+/* Tarjetas de selección de modelos */
+.model-select-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.model-select-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.model-select-card.selected {
+    border-color: #4e54c8;
+    background-color: rgba(78, 84, 200, 0.05);
+}
+
+/* Iconos de modelos */
+.model-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Gradientes */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #6ad1e3 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ffd967 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #28a745 0%, #6bdd87 100%);
+}
+
+/* Checkboxes personalizados */
+.form-check-input:checked {
+    background-color: #4e54c8;
+    border-color: #4e54c8;
+}
+
+.form-check-input:focus {
+    border-color: #4e54c8;
+    box-shadow: 0 0 0 0.25rem rgba(78, 84, 200, 0.25);
+}
+
+/* Gráfico de dona */
+.doughnut-chart {
+    position: relative;
+    border-radius: 50%;
+    background: conic-gradient(#4e54c8 70%, #ffc107 30%);
+}
+
+.doughnut-chart::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    background: white;
+    border-radius: 50%;
+}
+
+/* Tarjetas de archivos */
+.file-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.file-card.selected {
+    border-color: #4e54c8;
+    background-color: rgba(78, 84, 200, 0.05);
+}
+
+/* Animaciones para los pasos */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.step-number.active {
+    animation: pulse 2s infinite;
+}
+
+/* Estilos para badges de estado */
+.badge-status {
+    padding: 0.5em 1em;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* Estilos para los acordeones */
+.accordion-button:not(.collapsed) {
+    background-color: rgba(78, 84, 200, 0.1);
+    color: #4e54c8;
+}
+
+.accordion-button:focus {
+    border-color: #4e54c8;
+    box-shadow: 0 0 0 0.25rem rgba(78, 84, 200, 0.25);
+}
+
+/* Estilos para el rango personalizado */
+.form-range::-webkit-slider-thumb {
+    background: #4e54c8;
+}
+
+.form-range::-moz-range-thumb {
+    background: #4e54c8;
+}
+
+.form-range::-ms-thumb {
+    background: #4e54c8;
+}
+
+/* Estilos para el progreso de carga */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #4e54c8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .step-number {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .model-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .doughnut-chart {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+
+/* ================================================ */
+/* ESTILOS PARA LA PÁGINA DE PROGRESO ENTRENAMIENTO */
+/* ================================================ */
+
+/* Animación de giro */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Tarjetas de pasos mejoradas */
+.step-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    height: 100%;
+}
+
+.step-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.step-card.active-step {
+    border-color: #4e54c8;
+    background: linear-gradient(135deg, rgba(78, 84, 200, 0.05), rgba(143, 148, 251, 0.05));
+}
+
+.step-card.completed-step {
+    border-color: #28a745;
+}
+
+/* Consola mejorada */
+.console-container {
+    background: #1e1e1e !important;
+    border-color: #495057 !important;
+}
+
+.console-line {
+    padding: 3px 0;
+    border-left: 3px solid transparent;
+    padding-left: 10px;
+    margin: 2px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.console-line:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Barras de progreso personalizadas */
+.progress-bar-striped {
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 40px 40px;
+}
+
+/* Badges mejorados */
+.badge.bg-success {
+    background: linear-gradient(135deg, #28a745, #6bdd87) !important;
+}
+
+.badge.bg-primary {
+    background: linear-gradient(135deg, #4e54c8, #8f94fb) !important;
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, #ffc107, #ffd967) !important;
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg, #17a2b8, #6ad1e3) !important;
+}
+
+/* Gráfico de dona animado */
+@keyframes donut-fill {
+    from { background: conic-gradient(#4e54c8 0%, #e9ecef 0%); }
+    to { background: conic-gradient(#4e54c8 var(--percentage), #e9ecef var(--percentage)); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .step-card {
+        margin-bottom: 1rem;
+    }
+    
+    .console-container {
+        height: 200px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    #donut-chart {
+        width: 120px !important;
+        height: 120px !important;
+    }
+    
+    #donut-chart::before {
+        width: 80px !important;
+        height: 80px !important;
+    }
+}
+
+/* Efectos de transición suaves */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar personalizado para consola */
+.console-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.console-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.console-container::-webkit-scrollbar-thumb {
+    background: #4e54c8;
+    border-radius: 4px;
+}
+
+.console-container::-webkit-scrollbar-thumb:hover {
+    background: #8f94fb;
+}
+
+/* Estilos para los iconos de emojis en consola */
+.console-line span[class*="text-"]:before {
+    margin-right: 5px;
+}

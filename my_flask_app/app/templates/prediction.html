@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Predicciones - AgroData{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold text-primary">
+                <i class="bi bi-graph-up me-2"></i>Predicciones de Variables y Riego
+            </h1>
+            <p class="lead text-muted">
+                Realiza predicciones de variables climáticas y calcula las necesidades de riego para tu cultivo
+            </p>
+        </div>
+    </div>
+
+    <!-- Formulario para predicciones -->
+    <div class="row mb-5">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-sliders me-2"></i>Configurar Predicción</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.prediccion') }}">
+                        <div class="mb-4">
+                            <label for="horizon_days" class="form-label fw-bold">
+                                <i class="bi bi-calendar-range me-2"></i>Horizonte de Predicción
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       class="form-control form-control-lg" 
+                                       id="horizon_days" 
+                                       name="horizon_days" 
+                                       min="1" 
+                                       max="365" 
+                                       value="30"
+                                       required>
+                                <span class="input-group-text">días</span>
+                            </div>
+                            <div class="form-text">
+                                Selecciona cuántos días en el futuro deseas predecir (máximo 365 días).
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-lightning-charge me-2"></i>Generar Predicciones
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if show_results %}
+    <!-- Resultados de Predicción -->
+    <div class="row">
+        <!-- Resumen Estadístico -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Resumen de Predicción</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Período Predicho</span>
+                            <span class="badge bg-primary rounded-pill">{{ prediction_summary.total_dias }} días</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Fecha Inicio</span>
+                            <span class="text-muted">{{ prediction_summary.fecha_inicio }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Fecha Fin</span>
+                            <span class="text-muted">{{ prediction_summary.fecha_fin }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Variables Predichas</span>
+                            <span class="badge bg-success rounded-pill">{{ prediction_summary.num_variables }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Riego Promedio</span>
+                            <span class="fw-bold text-primary">{{ prediction_summary.riego_promedio }} mm/día</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Riego Total Estimado</span>
+                            <span class="fw-bold text-success">{{ prediction_summary.riego_total }} mm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Gráficos de Predicción</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Variables Predichas -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">Variables Climáticas Predichas</h6>
+                        {% if plots.variables %}
+                        <img src="data:image/png;base64,{{ plots.variables }}" 
+                             class="img-fluid rounded shadow-sm" 
+                             alt="Gráfico de Variables Predichas">
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Necesidad de Riego -->
+                    <div>
+                        <h6 class="text-muted mb-3">Necesidad de Riego Calculada</h6>
+                        {% if plots.riego %}
+                        <img src="data:image/png;base64,{{ plots.riego }}" 
+                             class="img-fluid rounded shadow-sm" 
+                             alt="Gráfico de Riego">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Riego -->
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Programación de Riego (Primeros 15 días)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Riego (mm/día)</th>
+                                    <th>Temperatura (°C)</th>
+                                    <th>Precipitación (mm)</th>
+                                    <th>Humedad (%)</th>
+                                    <th>Radiación (MJ/m²)</th>
+                                    <th>Recomendación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in table_data %}
+                                <tr>
+                                    <td>{{ row.Fecha.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <span class="badge {% if row.Riego_mm > 7 %}bg-danger{% elif row.Riego_mm > 4 %}bg-warning{% else %}bg-success{% endif %} rounded-pill">
+                                            {{ row.Riego_mm }} mm
+                                        </span>
+                                    </td>
+                                    <td>{{ row.Temperatura_estimada }}°C</td>
+                                    <td>{{ row.Precipitacion_estimada }} mm</td>
+                                    <td>{{ row.Humedad_estimada }}%</td>
+                                    <td>{{ row.Radiacion_estimada }}</td>
+                                    <td>
+                                        {% if row.Riego_mm > 7 %}
+                                        <span class="badge bg-danger">Riego Alto</span>
+                                        {% elif row.Riego_mm > 4 %}
+                                        <span class="badge bg-warning text-dark">Riego Moderado</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Riego Bajo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted mt-2">
+                        <small><i class="bi bi-info-circle me-1"></i>Mostrando los primeros 15 días de {{ prediction_summary.total_dias }} días predichos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Acciones Disponibles</h6>
+                            <p class="text-muted mb-0">Descarga los datos completos de predicción</p>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('main.descargar_predicciones') }}" 
+                               class="btn btn-success">
+                                <i class="bi bi-file-excel me-2"></i>Descargar Excel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Información Adicional -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="bi bi-lightbulb me-2"></i>¿Cómo interpretar los resultados?</h6>
+                <ul class="mb-0">
+                    <li><strong>Riego Alto (>7mm/día):</strong> Condiciones de alta demanda hídrica, posiblemente por altas temperaturas o baja humedad.</li>
+                    <li><strong>Riego Moderado (4-7mm/día):</strong> Condiciones normales, seguir programación estándar de riego.</li>
+                    <li><strong>Riego Bajo (<4mm/día):</strong> Condiciones favorables con baja demanda hídrica, posiblemente por precipitaciones o alta humedad.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Añadir iconos de Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<style>
+    .card {
+        border: none;
+        transition: transform 0.3s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    .badge {
+        font-size: 0.85em;
+    }
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+    $(document).ready(function() {
+        $('#predictionForm').submit(function(e) {
+            const horizonDays = $('#horizon_days').val();
+            localStorage.setItem('prediction_horizon', horizonDays);
+        });
+    });
+    </script>
+{% endblock %}

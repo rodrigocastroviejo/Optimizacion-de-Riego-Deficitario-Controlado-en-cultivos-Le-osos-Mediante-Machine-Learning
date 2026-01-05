@@ -1,0 +1,55 @@
+services:
+  web:
+    build: .
+    container_name: agro_data 
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/app
+    
+    # Configuración directa de recursos 
+    mem_limit: 10g
+    memswap_limit: 18g
+    # Para CPUs (opcional)
+    cpus: '2.0'
+    cpu_shares: 512
+    
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_DEBUG=1
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/agro_data
+      # Variables para optimizar Python con modelos grandes
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONHASHSEED=random
+      - OMP_NUM_THREADS=2  # Limitar threads para modelos scikit-learn
+      - MKL_NUM_THREADS=2
+    command: flask run --host=0.0.0.0 --port=5000
+    depends_on:
+      - db
+    
+    # Limitar procesos dentro del contenedor (opcional)
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+
+  db:
+    image: postgres:14
+    container_name: agro_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: agro_data
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    # Memoria para PostgreSQL
+    mem_limit: 2g
+    memswap_limit: 4g
+
+volumes:
+  postgres_data:

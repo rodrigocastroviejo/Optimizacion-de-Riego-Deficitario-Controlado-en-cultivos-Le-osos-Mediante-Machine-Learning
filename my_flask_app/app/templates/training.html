@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+
+{% block title %}Entrenar Modelos - AgroData{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary rounded-circle p-3 me-3">
+                    <i class="fas fa-brain fa-2x text-white"></i>
+                </div>
+                <div>
+                    <h1 class="fw-bold text-primary mb-1">Entrenamiento de Modelos Predictivos</h1>
+                    <p class="text-muted mb-0">Configura y entrena modelos de machine learning para predicciones climáticas</p>
+                </div>
+            </div>
+            
+            <!-- Indicadores de estado -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-start border-4 border-primary">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Modelos Disponibles</h6>
+                            <h3 id="availableModelsCount" class="fw-bold text-primary">Cargando...</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-start border-4 border-success">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Archivos de Datos</h6>
+                            <h3 id="availableFilesCount" class="fw-bold text-success">Cargando...</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-start border-4 border-warning">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Último Entrenamiento</h6>
+                            <h5 id="lastTrainingDate" class="fw-bold text-warning">Nunca</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-start border-4 border-info">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Estado del Sistema</h6>
+                            <span id="systemStatus" class="badge bg-success">Listo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario Principal -->
+    <div class="row">
+        <!-- Columna de Configuración -->
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Configuración del Entrenamiento</h4>
+                        <span class="badge bg-light text-primary">Paso 1 de 3</span>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <form id="trainingForm" action="{{ url_for('main.entrenamiento_proceso') }}" method="POST">
+                        
+                        <!-- Paso 1: Selección de Datos -->
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="step-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                    1
+                                </div>
+                                <h5 class="mb-0">Selección de Datos de Entrenamiento</h5>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-dark mb-3">
+                                    <i class="fas fa-database me-2 text-primary"></i>Archivo de Datos
+                                </label>
+                                
+                                <div id="dataFilesContainer" class="row g-3">
+                                    <!-- Los archivos se cargarán dinámicamente aquí -->
+                                    <div class="col-12 text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-3 text-muted">Cargando archivos disponibles...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-text mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Selecciona el dataset que contiene los datos históricos para entrenar los modelos.
+                                </div>
+                            </div>
+                            
+                            <!-- Tamaño del Test Set -->
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <label for="test_size" class="form-label fw-bold text-dark">
+                                        <i class="fas fa-chart-pie me-2 text-primary"></i>Tamaño del Conjunto de Prueba
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="range" class="form-range" id="test_size_slider" min="30" max="365" value="180">
+                                        <input type="number" class="form-control text-center" id="test_size" name="test_size" 
+                                               min="30" max="365" value="180" style="max-width: 100px;">
+                                        <span class="input-group-text bg-light">días</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <small class="text-muted">30 días (mínimo)</small>
+                                        <span id="testSizeValue" class="badge bg-primary">180 días</span>
+                                        <small class="text-muted">365 días (máximo)</small>
+                                    </div>
+                                    <div class="progress mt-2" style="height: 4px;">
+                                        <div class="progress-bar bg-primary" style="width: 50%;"></div>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        Recomendado: 180 días (aproximadamente 20-30% del total de datos)
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-primary">
+                                        <div class="card-body text-center py-3">
+                                            <h6 class="text-muted mb-2">Distribución</h6>
+                                            <div class="doughnut-chart mx-auto" style="width: 100px; height: 100px;"></div>
+                                            <div class="mt-2">
+                                                <span class="badge bg-primary">Train</span>
+                                                <span class="badge bg-warning ms-2">Test</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Paso 2: Selección de Modelos -->
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="step-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                    2
+                                </div>
+                                <h5 class="mb-0">Selección de Modelos a Entrenar</h5>
+                            </div>
+                            
+                            <div class="row g-3">
+                                <!-- SARIMA -->
+                                <div class="col-md-6">
+                                    <div class="card model-select-card h-100" data-model="sarima">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input model-checkbox" type="checkbox" 
+                                                       id="model_sarima" name="models" value="sarima" checked>
+                                                <label class="form-check-label w-100" for="model_sarima">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <div class="model-icon bg-primary rounded-circle p-2 me-3">
+                                                            <i class="fas fa-chart-line text-white"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h6 class="mb-0 fw-bold">SARIMA</h6>
+                                                            <small class="text-muted">Modelo Univariante</small>
+                                                        </div>
+                                                    </div>
+                                                    <p class="mb-0 small">Modelo estadístico para series temporales univariantes. Eficiente y rápido.</p>
+                                                    <div class="mt-3">
+                                                        <span class="badge bg-primary">Recomendado</span>
+                                                        <span class="badge bg-light text-dark ms-1">Rápido</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- SARIMAX -->
+                                <div class="col-md-6">
+                                    <div class="card model-select-card h-100" data-model="sarimax">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input model-checkbox" type="checkbox" 
+                                                       id="model_sarimax" name="models" value="sarimax">
+                                                <label class="form-check-label w-100" for="model_sarimax">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <div class="model-icon bg-success rounded-circle p-2 me-3">
+                                                            <i class="fas fa-project-diagram text-white"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h6 class="mb-0 fw-bold">SARIMAX</h6>
+                                                            <small class="text-muted">Con Variables Exógenas</small>
+                                                        </div>
+                                                    </div>
+                                                    <p class="mb-0 small">SARIMA con variables externas. Más preciso pero más lento.</p>
+                                                    <div class="mt-3">
+                                                        <span class="badge bg-warning text-dark">Avanzado</span>
+                                                        <span class="badge bg-light text-dark ms-1">Lento</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- VAR -->
+                                <div class="col-md-6">
+                                    <div class="card model-select-card h-100" data-model="var">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input model-checkbox" type="checkbox" 
+                                                       id="model_var" name="models" value="var" checked>
+                                                <label class="form-check-label w-100" for="model_var">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <div class="model-icon bg-info rounded-circle p-2 me-3">
+                                                            <i class="fas fa-network-wired text-white"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h6 class="mb-0 fw-bold">VAR</h6>
+                                                            <small class="text-muted">Modelo Multivariante</small>
+                                                        </div>
+                                                    </div>
+                                                    <p class="mb-0 small">Vector Autoregresivo para múltiples variables simultáneamente.</p>
+                                                    <div class="mt-3">
+                                                        <span class="badge bg-primary">Recomendado</span>
+                                                        <span class="badge bg-light text-dark ms-1">Moderado</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- LSTM -->
+                                <div class="col-md-6">
+                                    <div class="card model-select-card h-100" data-model="lstm">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input model-checkbox" type="checkbox" 
+                                                       id="model_lstm" name="models" value="lstm">
+                                                <label class="form-check-label w-100" for="model_lstm">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <div class="model-icon bg-warning rounded-circle p-2 me-3">
+                                                            <i class="fas fa-robot text-white"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h6 class="mb-0 fw-bold">LSTM</h6>
+                                                            <small class="text-muted">Red Neuronal</small>
+                                                        </div>
+                                                    </div>
+                                                    <p class="mb-0 small">Red neuronal recurrente para patrones complejos. Requiere TensorFlow.</p>
+                                                    <div class="mt-3">
+                                                        <span class="badge bg-danger">Experimental</span>
+                                                        <span class="badge bg-light text-dark ms-1">Muy Lento</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-check-circle me-1 text-success"></i>
+                                        Seleccionados: <span id="selectedModelsCount">2</span> modelos
+                                    </small>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllModels">
+                                        <i class="fas fa-check-square me-1"></i>Seleccionar Todos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="deselectAllModels">
+                                        <i class="fas fa-times-circle me-1"></i>Deseleccionar Todos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Paso 3: Parámetros Avanzados -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="step-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                    3
+                                </div>
+                                <h5 class="mb-0">Parámetros Avanzados</h5>
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="toggleAdvancedParams">
+                                    <i class="fas fa-cogs me-1"></i>Mostrar/Ocultar
+                                </button>
+                            </div>
+                            
+                            <div id="advancedParams" style="display: none;">
+                                <div class="accordion" id="paramsAccordion">
+                                    <!-- Parámetros SARIMA -->
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sarimaParamsCollapse">
+                                                <i class="fas fa-tune me-2 text-primary"></i>Parámetros SARIMA/SARIMAX
+                                            </button>
+                                        </h2>
+                                        <div id="sarimaParamsCollapse" class="accordion-collapse collapse" data-bs-parent="#paramsAccordion">
+                                            <div class="accordion-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-4">
+                                                        <label for="sarima_p" class="form-label">p (AR)</label>
+                                                        <input type="number" class="form-control" id="sarima_p" name="sarima_p" min="0" max="5" value="1">
+                                                        <small class="text-muted">Orden autorregresivo</small>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="sarima_d" class="form-label">d (I)</label>
+                                                        <input type="number" class="form-control" id="sarima_d" name="sarima_d" min="0" max="2" value="1">
+                                                        <small class="text-muted">Orden de diferenciación</small>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="sarima_q" class="form-label">q (MA)</label>
+                                                        <input type="number" class="form-control" id="sarima_q" name="sarima_q" min="0" max="5" value="1">
+                                                        <small class="text-muted">Orden de media móvil</small>
+                                                    </div>
+                                                </div>
+                                                <div class="row g-3 mt-2">
+                                                    <div class="col-md-4">
+                                                        <label for="sarima_P" class="form-label">P (AR estacional)</label>
+                                                        <input type="number" class="form-control" id="sarima_P" name="sarima_P" min="0" max="2" value="1">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="sarima_D" class="form-label">D (I estacional)</label>
+                                                        <input type="number" class="form-control" id="sarima_D" name="sarima_D" min="0" max="1" value="1">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="sarima_Q" class="form-label">Q (MA estacional)</label>
+                                                        <input type="number" class="form-control" id="sarima_Q" name="sarima_Q" min="0" max="2" value="1">
+                                                    </div>
+                                                </div>
+                                                <div class="row g-3 mt-2">
+                                                    <div class="col-md-6">
+                                                        <label for="sarima_s" class="form-label">s (Estacionalidad)</label>
+                                                        <input type="number" class="form-control" id="sarima_s" name="sarima_s" min="0" max="365" value="30">
+                                                        <small class="text-muted">Período estacional en días</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Parámetros VAR -->
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#varParamsCollapse">
+                                                <i class="fas fa-project-diagram me-2 text-info"></i>Parámetros VAR
+                                            </button>
+                                        </h2>
+                                        <div id="varParamsCollapse" class="accordion-collapse collapse" data-bs-parent="#paramsAccordion">
+                                            <div class="accordion-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label for="var_maxlags" class="form-label">Máximo de Rezagos</label>
+                                                        <div class="input-group">
+                                                            <input type="range" class="form-range" id="var_maxlags_slider" min="1" max="30" value="15">
+                                                            <input type="number" class="form-control text-center" id="var_maxlags" name="var_maxlags" 
+                                                                   min="1" max="30" value="15" style="max-width: 100px;">
+                                                        </div>
+                                                        <small class="text-muted">Número máximo de períodos pasados a considerar (recomendado: 15)</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Resumen y Botón -->
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Resumen de Configuración</h6>
+                                        <p class="mb-0 text-muted small" id="configSummary">
+                                            <span id="summaryModels">2 modelos</span> • 
+                                            <span id="summaryTestSize">180 días de prueba</span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-secondary me-2" id="resetFormBtn">
+                                            <i class="fas fa-undo me-1"></i>Restablecer
+                                        </button>
+                                        <button type="submit" class="btn btn-primary btn-lg px-4" id="startTrainingBtn">
+                                            <i class="fas fa-play me-2"></i>Iniciar Entrenamiento
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Columna de Información -->
+        <div class="col-lg-4">
+            <!-- Información del Sistema -->
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-gradient-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Modelos Disponibles</span>
+                                <span class="badge bg-primary" id="modelsCountBadge">0</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Archivos de Datos</span>
+                                <span class="badge bg-success" id="filesCountBadge">0</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Tiempo Estimado</span>
+                                <span class="text-primary" id="estimatedTime">5-10 min</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Estado</span>
+                                <span class="badge bg-success" id="statusBadge">Listo</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recomendaciones -->
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-gradient-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recomendaciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Advertencia</h6>
+                        <p class="mb-0 small">El entrenamiento puede tomar varios minutos. No cierres esta ventana durante el proceso.</p>
+                    </div>
+                    
+                    <h6 class="text-dark mb-3">Configuraciones Recomendadas:</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="small">Dataset: Al menos 2 años de datos</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="small">Test size: 180 días (6 meses)</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="small">Modelos: SARIMA + VAR para empezar</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-times-circle text-danger me-2"></i>
+                            <span class="small">LSTM: Solo si tienes GPU</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Progreso del Entrenamiento -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historial de Entrenamientos</h5>
+                </div>
+                <div class="card-body">
+                    <div id="trainingHistory">
+                        <div class="text-center py-3">
+                            <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No hay entrenamientos previos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-play-circle me-2"></i>Confirmar Inicio de Entrenamiento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-cogs fa-4x text-primary mb-3"></i>
+                    <h4>¿Estás listo para comenzar?</h4>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Resumen de Configuración</h6>
+                    <ul class="mb-0" id="confirmSummary">
+                        <!-- Resumen se llenará aquí -->
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Importante</h6>
+                    <p class="mb-0 small">
+                        El entrenamiento puede tomar varios minutos. Durante este tiempo:
+                        <ul class="small mb-0">
+                            <li>No cierres esta ventana</li>
+                            <li>No recargues la página</li>
+                            <li>Puedes monitorear el progreso en tiempo real</li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmStartBtn">
+                    <i class="fas fa-play me-1"></i>Sí, Iniciar Entrenamiento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Error -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Error de Configuración
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="errorMessage">Ha ocurrido un error en la configuración.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+    <script>
+        window.TRAINING_PROCESS_URL = "{{ url_for('main.entrenamiento_proceso') }}";
+        window.TRAINING_PROGRESS_URL = "{{ url_for('main.entrenamiento_progreso') }}";
+    </script>
+
+    <script src="{{ url_for('static', filename='js/training.js') }}"></script>
+{% endblock %}
