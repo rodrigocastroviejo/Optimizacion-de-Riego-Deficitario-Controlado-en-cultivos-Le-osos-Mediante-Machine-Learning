@@ -196,8 +196,24 @@ document.addEventListener('DOMContentLoaded', function() {
             <span class="${typeClass}">[${timestamp}] ${prefix}</span> ${message}
         `;
         
-        consoleOutput.appendChild(messageElement);
-        
+        // Obtenemos todos los mensajes actuales dentro del output
+        const existingMessages = Array.from(consoleOutput.children);
+
+
+        const isDuplicate = Array.from(consoleOutput.children).some(line => {
+            // 1. Clonamos el elemento para no romper el original
+            // 2. Buscamos el span del timestamp y lo ignoramos en la comparación
+            const currentMsgText = line.lastChild.textContent.trim();
+            const newMsgText = messageElement.lastChild.textContent.trim();
+            
+            return currentMsgText === newMsgText;
+        });
+
+        if (!isDuplicate) {
+            consoleOutput.appendChild(messageElement);
+        }   
+                
+
         // Auto-scroll si está habilitado
         if (autoScrollEnabled) {
             const container = consoleOutput.parentElement;
@@ -235,9 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('summary-steps').textContent = 
             `${data.current_step || 0}/${data.total_steps || 0}`;
         
-        // Calcular modelos entrenados (simulado)
-        const modelCount = Math.floor(Math.random() * 5) + 1;
-        document.getElementById('summary-models').textContent = modelCount;
+
         
         // Mostrar sección de finalización
         completionSection.classList.remove('d-none');
@@ -245,7 +259,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Agregar mensaje final a la consola
         addConsoleMessage('🎉 Entrenamiento completado exitosamente!', 'success');
         addConsoleMessage(`⏱️ Tiempo total: ${elapsedTimeElement.textContent}`, 'info');
-        addConsoleMessage(`📊 Modelos entrenados: ${modelCount}`, 'info');
     }
     
     // Añadir mensaje inicial

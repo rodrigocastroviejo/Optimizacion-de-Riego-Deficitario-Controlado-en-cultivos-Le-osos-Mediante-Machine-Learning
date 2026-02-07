@@ -107,22 +107,14 @@
                                         <i class="fas fa-chart-pie me-2 text-primary"></i>Tamaño del Conjunto de Prueba
                                     </label>
                                     <div class="input-group">
-                                        <input type="range" class="form-range" id="test_size_slider" min="30" max="365" value="180">
+                                        <input type="range" class="form-range" id="test_size_slider" min="10" max="50" value="20">
                                         <input type="number" class="form-control text-center" id="test_size" name="test_size" 
-                                               min="30" max="365" value="180" style="max-width: 100px;">
-                                        <span class="input-group-text bg-light">días</span>
+                                        min="10" max="50" value="20" style="max-width: 100px;">
+                                        <span class="input-group-text bg-light" id="unit-label">filas</span>
                                     </div>
-                                    <div class="d-flex justify-content-between mt-2">
-                                        <small class="text-muted">30 días (mínimo)</small>
-                                        <span id="testSizeValue" class="badge bg-primary">180 días</span>
-                                        <small class="text-muted">365 días (máximo)</small>
-                                    </div>
-                                    <div class="progress mt-2" style="height: 4px;">
-                                        <div class="progress-bar bg-primary" style="width: 50%;"></div>
-                                    </div>
-                                    <div class="form-text mt-2">
-                                        <i class="fas fa-lightbulb me-1"></i>
-                                        Recomendado: 180 días (aproximadamente 20-30% del total de datos)
+                                    <div class="form-text mt-2" id="slider-info">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Rango permitido: 10% - 50% del total de filas.
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -452,11 +444,11 @@
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
-                            <span class="small">Dataset: Al menos 2 años de datos</span>
+                            <span class="small">Dataset: Al menos 7 años de datos</span>
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
-                            <span class="small">Test size: 180 días (6 meses)</span>
+                            <span class="small">Test size: 20-30% conjunto total de datos</span>
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
@@ -464,7 +456,7 @@
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-times-circle text-danger me-2"></i>
-                            <span class="small">LSTM: Solo si tienes GPU</span>
+                            <span class="small">LSTM: Recomendado tener GPU</span>
                         </li>
                     </ul>
                 </div>

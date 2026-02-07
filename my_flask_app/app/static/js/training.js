@@ -2,7 +2,8 @@ $(document).ready(function() {
     // Variables globales
     let selectedFile = null;
     let selectedModels = ['sarima', 'var'];
-    
+    let currentFileRows = 0;
+
     // Inicializar
     loadDataFiles();
     loadSystemInfo();
@@ -12,7 +13,6 @@ $(document).ready(function() {
     $('#test_size_slider').on('input', function() {
         const value = $(this).val();
         $('#test_size').val(value);
-        $('#testSizeValue').text(value + ' días');
         updateDoughnutChart(value);
         updateSummary();
     });
@@ -20,7 +20,6 @@ $(document).ready(function() {
     $('#test_size').on('input', function() {
         const value = $(this).val();
         $('#test_size_slider').val(value);
-        $('#testSizeValue').text(value + ' días');
         updateDoughnutChart(value);
         updateSummary();
     });
@@ -58,7 +57,12 @@ $(document).ready(function() {
     $(document).on('click', '.file-card', function() {
         $('.file-card').removeClass('selected');
         $(this).addClass('selected');
+        
         selectedFile = $(this).data('filename');
+        // Extraer el número de filas desde el atributo data que insertaremos en el render
+        currentFileRows = parseInt($(this).data('rows'));
+        
+        updateSliderLimits(); // Nueva función
         updateSummary();
     });
     
@@ -99,7 +103,7 @@ $(document).ready(function() {
     // Funciones auxiliares
     function loadDataFiles() {
         $.ajax({
-            url: '/api/archivos_datos',
+           url: '/api/archivos_datos',
             type: 'GET',
             success: function(response) {
                 if (response.files && response.files.length > 0) {
@@ -107,11 +111,9 @@ $(document).ready(function() {
                     $('#availableFilesCount').text(response.files.length);
                     $('#filesCountBadge').text(response.files.length);
                     
-                    // Seleccionar el primer archivo por defecto
-                    if (response.files.length > 0) {
-                        selectedFile = response.files[0].name;
-                        $(`.file-card[data-filename="${selectedFile}"]`).addClass('selected');
-                    }
+                    // --- SE ELIMINÓ EL BLOQUE QUE SELECCIONABA EL PRIMER ARCHIVO ---
+                    selectedFile = null; 
+                    currentFileRows = 0;
                 } else {
                     $('#dataFilesContainer').html(`
                         <div class="col-12">
@@ -140,14 +142,14 @@ $(document).ready(function() {
     
     function renderFileCards(files) {
         let html = '';
-        
         files.forEach(file => {
             const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-            const isRecommended = file.rows > 365; // Más de 1 año de datos
+            const isRecommended = file.rows > 365;
             
+            // Se ha eliminado el div 'selection-badge' para quitar el indicador visual superior
             html += `
                 <div class="col-md-6">
-                    <div class="card file-card h-100" data-filename="${file.name}">
+                    <div class="card file-card h-100" data-filename="${file.name}" data-rows="${file.rows}">
                         <div class="card-body">
                             <div class="d-flex align-items-start">
                                 <div class="bg-primary rounded-circle p-2 me-3">
@@ -175,7 +177,6 @@ $(document).ready(function() {
                 </div>
             `;
         });
-        
         $('#dataFilesContainer').html(html);
     }
     
@@ -208,8 +209,10 @@ $(document).ready(function() {
         `);
     }
     
-    function updateDoughnutChart(testSize) {
-        const trainPercent = 100 - (testSize / 365 * 100);
+    function updateDoughnutChart(testRows) {
+        if (!currentFileRows) return;
+        // Porcentaje de entrenamiento = ((Total - Test) / Total) * 100
+        const trainPercent = ((currentFileRows - testRows) / currentFileRows) * 100;
         const chart = $('.doughnut-chart');
         chart.css('background', `conic-gradient(#4e54c8 ${trainPercent}%, #ffc107 ${trainPercent}%)`);
     }
@@ -252,7 +255,6 @@ $(document).ready(function() {
         // Resetear valores
         $('#test_size').val(180);
         $('#test_size_slider').val(180);
-        $('#testSizeValue').text('180 días');
         
         // Resetear modelos
         selectedModels = ['sarima', 'var'];
@@ -277,7 +279,9 @@ $(document).ready(function() {
             $('.file-card:first').addClass('selected');
         }
         
-        updateDoughnutChart(180);
+        if (selectedFile) {
+            updateDoughnutChart($('#test_size').val());
+        }       
         updateSummary();
         updateEstimatedTime();
     }
@@ -317,6 +321,30 @@ $(document).ready(function() {
         // Mostrar modal de confirmación
         const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
         modal.show();
+    }
+
+    function updateSliderLimits() {
+        if (!currentFileRows) return;
+
+        // Calcular límites basados en las filas del archivo
+        const minRows = Math.round(currentFileRows * 0.10);
+        const maxRows = Math.round(currentFileRows * 0.50);
+        const defaultRows = Math.round(currentFileRows * 0.20);
+
+        // Actualizar el Slider (Input Range)
+        $('#test_size_slider').attr('min', minRows);
+        $('#test_size_slider').attr('max', maxRows);
+        $('#test_size_slider').val(defaultRows);
+
+        // Actualizar el Input Number
+        $('#test_size').attr('min', minRows);
+        $('#test_size').attr('max', maxRows);
+        $('#test_size').val(defaultRows);
+
+        // Actualizar info visual
+        $('#slider-info').html(`<i class="fas fa-info-circle me-1"></i> Archivo con ${currentFileRows.toLocaleString()} filas. Test set entre ${minRows} y ${maxRows} filas.`);
+        
+        updateDoughnutChart(defaultRows);
     }
     
     function startTraining() {

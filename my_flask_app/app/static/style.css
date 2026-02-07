@@ -170,19 +170,24 @@ header {
 }
 
 /* Tarjetas de archivos */
-.file-card {
-    transition: all 0.3s ease;
-    cursor: pointer;
+
+/* El indicador está ahí pero invisible */
+.file-card .selection-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #4e54c8;
+    display: none; /* OCULTO POR DEFECTO */
 }
 
-.file-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-}
-
+/* Solo se muestra cuando la tarjeta tiene la clase .selected */
 .file-card.selected {
-    border-color: #4e54c8;
+    border: 2px solid #4e54c8;
     background-color: rgba(78, 84, 200, 0.05);
+}
+
+.file-card.selected .selection-badge {
+    display: block; /* SE MUESTRA AL SELECCIONAR */
 }
 
 /* Animaciones para los pasos */
