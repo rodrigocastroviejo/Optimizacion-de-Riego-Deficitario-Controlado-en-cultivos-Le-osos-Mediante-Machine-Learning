@@ -1,305 +1,294 @@
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Variables globales
-    let progressInterval;
+    let autoScrollEnabled = true;
     let startTime = new Date();
-    let consoleMessageCount = 0;
-    let isProcessing = true;
+    let updateInterval;
     
-    // Iniciar el proceso de predicción automáticamente
-    startPredictionProcess();
+    // Elementos del DOM
+    const mainProgressBar = document.getElementById('main-progress-bar');
+    const subprogressContainer = document.getElementById('subprogress-container');
+    const subprogressBar = document.getElementById('subprogress-bar');
+    const substepText = document.getElementById('substep-text');
+    const percentageElement = document.getElementById('percentage');
+    const donutChart = document.getElementById('donut-chart');
+    const donutPercentage = document.getElementById('donut-percentage');
+    const statusBadge = document.getElementById('status-badge');
+    const consoleOutput = document.getElementById('console-output');
+    const completionSection = document.getElementById('completion-section');
+    const elapsedTimeElement = document.getElementById('elapsed-time');
+    const stepsContainer = document.getElementById('steps-container');
     
-    // Función para iniciar el proceso
-    function startPredictionProcess() {
-        // Obtener horizon_days del formulario anterior (almacenado en localStorage)
-        const horizonDays = localStorage.getItem('prediction_horizon') || 30;
-        
-        // Enviar solicitud para iniciar predicción
-        $.ajax({
-            url: window.PREDICTION_PROCESS_URL,
-            type: 'POST',
-            data: {
-                horizon_days: horizonDays
-            },
-            success: function(response) {
-                if (response.success) {
-                    console.log("✅ Proceso iniciado correctamente");
-                } else {
-                    showError(response.error || 'Error al iniciar el proceso');
-                }
-            },
-            error: function(xhr) {
-                showError(xhr.responseJSON?.error || 'Error de conexión');
-            }
-        });
-        
-        // Iniciar monitoreo de progreso
-        startProgressMonitoring();
-    }
+    // Botones
+    document.getElementById('clear-console').addEventListener('click', clearConsole);
+    document.getElementById('auto-scroll-toggle').addEventListener('click', toggleAutoScroll);
     
-    // Función para monitorear el progreso
-    function startProgressMonitoring() {
-        progressInterval = setInterval(fetchProgress, 5000);
-    }
+    // Iniciar actualización del tiempo
+    updateElapsedTime();
+    setInterval(updateElapsedTime, 1000);
     
-    // Función para obtener el progreso
-    function fetchProgress() {
-        $.ajax({
-            url: window.API_PREDICTION_PROGRESS_URL,
-            type: 'GET',
-            success: function(data) {
-                console.log(data)
-                updateUI(data);
-                
-                // Si el proceso está completo
-                if (data.is_complete) {
-                    completeProcess();
-                }
-            },
-            error: function() {
-                // Intento de reconexión
-                console.log("⚠️ Error de conexión, reintentando...");
-            }
-        });
-    }
-    
-    // Función para actualizar la UI
-    function updateUI(progress) {
-
-        // Actualizar barra de progreso principal
-        const overallPercentage = progress.percentage;
-        $('#overallPercentage').text(overallPercentage + '%');
-        $('#overallProgressBar').css('width', overallPercentage + '%');
-        $('#overallProgressBar .progress-text').text(overallPercentage + '%');
-        
-        // Actualizar paso actual
-        $('#currentStep').text(progress.current_message);
-               
-
-        // Actualizar pasos individuales
-        updateSteps(progress);
-                
-
-        // Actualizar consola de mensajes
-        updateConsole(progress.step_messages);
-                
-
-        // Actualizar contadores
-        updateCounters(progress.step_messages);
-
-        // Actualizar tiempo transcurrido
-        updateElapsedTime();
+    // Iniciar polling de progreso
+    startProgressPolling();
 
 
-    }
-    
-    // Función para actualizar los pasos
-    function updateSteps(progress) {
-        // Resetear todos los pasos
-        $('.step-card').removeClass('active-step completed-step');
-        $('.step-icon i').removeClass('text-primary text-success').addClass('text-muted');
-        $('.step-progress-bar').css('width', '0%');
-        
-        // Marcar pasos completados
-        for (let i = 0; i < progress.current_step; i++) {
-            const stepCard = $('#step' + i);
-            stepCard.addClass('completed-step');
-            stepCard.find('.step-icon i').removeClass('text-muted').addClass('text-success');
-            stepCard.find('.step-progress-bar').css('width', '100%');
-        }
-        
-        // Marcar paso actual
-        if (progress.current_step < progress.total_steps) {
-            const currentStepCard = $('#step' + progress.current_step);
-            currentStepCard.addClass('active-step');
-            currentStepCard.find('.step-icon i').removeClass('text-muted').addClass('text-primary');
-            
-            // Calcular progreso del paso actual
-            const progress_with_substep = progress.current_substep / progress.total_substeps * 100;
-            currentStepCard.find('.step-progress-bar').css('width', progress_with_substep + '%');
-        }
-    }
-    
-    // Función para actualizar la consola
-    function updateConsole(messages) {
-        const consoleElement = $('#messageConsole');
-        const messageCount = messages.length;
-        
-        // Solo actualizar si hay nuevos mensajes
-        if (messageCount > consoleMessageCount) {
-            const newMessages = messages.slice(consoleMessageCount);
-            
-            newMessages.forEach(msg => {
-                const line = `
-                    <div class="console-line mb-1">
-                        <span class="text-success">[${msg.timestamp}]</span>
-                        <span class="ms-2">${formatConsoleMessage(msg.message)}</span>
-                    </div>
-                `;
-                consoleElement.append(line);
-            });
-            
-            // Scroll al final
-            consoleElement.scrollTop(consoleElement[0].scrollHeight);
-            consoleMessageCount = messageCount;
-            
-            // Actualizar contador
-            $('#messageCount').text(messageCount + ' mensajes');
-        }
-    }
-    
-    // Función para formatear mensajes de consola
-    function formatConsoleMessage(message) {
-        // Colores para diferentes tipos de mensajes
-        let formatted = message;
-        
-        if (message.includes('✅')) {
-            formatted = `<span class="text-success">${message}</span>`;
-        } else if (message.includes('❌')) {
-            formatted = `<span class="text-danger">${message}</span>`;
-        } else if (message.includes('🔍') || message.includes('📁')) {
-            formatted = `<span class="text-info">${message}</span>`;
-        } else if (message.includes('🎯') || message.includes('🔮')) {
-            formatted = `<span class="text-warning">${message}</span>`;
-        } else if (message.includes('📊') || message.includes('📈')) {
-            formatted = `<span class="text-primary">${message}</span>`;
-        } else if (message.includes('💧') || message.includes('💦')) {
-            formatted = `<span class="text-info">${message}</span>`;
-        } else if (message.includes('🎨')) {
-            formatted = `<span class="text-purple">${message}</span>`;
-        }
-        
-        return formatted;
-    }
-    
-    // Función para actualizar contadores
-    function updateCounters(messages) {
-        // Extraer información de los mensajes
-        let modelsLoaded = 0;
-        let variablesPredicted = 0;
-        let daysPredicted = 0;
-        let irrigationTotal = 0;
-        
-        messages.forEach(msg => {
-            const message = msg.message;
-            
-            // Contar modelos cargados
-            if (message.includes('cargado exitosamente') || message.includes('cargado correctamente')) {
-                modelsLoaded++;
-            }
-            
-            // Extraer variables predichas
-            if (message.includes('variables predichas')) {
-                const match = message.match(/(\d+)\s+variables predichas/);
-                if (match) variablesPredicted = parseInt(match[1]);
-            }
-            
-            // Extraer días predichos
-            if (message.includes('días') && message.includes('Generando predicciones para')) {
-                const match = message.match(/Generando predicciones para\s+(\d+)\s+días/);
-                if (match) daysPredicted = parseInt(match[1]);
-            }
-            
-            // Extraer riego total
-            if (message.includes('Riego total:')) {
-                const match = message.match(/Riego total:\s+([\d\.]+)\s+mm/);
-                if (match) irrigationTotal = parseFloat(match[1]);
-            }
-        });
-        
-        // Actualizar UI
-        $('#modelsLoaded').text(modelsLoaded);
-        $('#variablesPredicted').text(variablesPredicted);
-        $('#daysPredicted').text(daysPredicted);
-        $('#irrigationCalculated').text(irrigationTotal.toFixed(1));
-    }
-    
-    // Función para actualizar tiempo transcurrido
+    // Función para actualizar el tiempo transcurrido
     function updateElapsedTime() {
         const now = new Date();
-        const elapsedSeconds = Math.floor((now - startTime) / 1000);
+        const diff = Math.floor((now - startTime) / 1000);
         
-        const minutes = Math.floor(elapsedSeconds / 60);
-        const seconds = elapsedSeconds % 60;
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        const seconds = diff % 60;
         
-        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        $('#elapsedTime').text(timeString);
-        $('#elapsedTimeDetailed').text(`${elapsedSeconds} segundos`);
+        elapsedTimeElement.textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
     
-    // Función para completar el proceso
-    function completeProcess() {
-        clearInterval(progressInterval);
-        isProcessing = false;
+    // Función para iniciar el polling de progreso
+    function startProgressPolling() {
+        // Primera actualización inmediata
+        fetchProgress();
         
-        // Mostrar mensaje de completado
-        $('#completionMessage').fadeIn();
-        
-        // Redirigir después de 5 segundos
-        setTimeout(() => {
-            window.location.href =  window.PREDICTION_RESULTS_URL;
-        }, 5000);
+        // Luego cada 2 segundos
+        updateInterval = setInterval(fetchProgress, 2000);
     }
     
-    // Función para mostrar error
-    function showError(message) {
-        clearInterval(progressInterval);
+    // Función para obtener el progreso desde la API
+    async function fetchProgress() {
+        try {
+            const response = await fetch('/api/progreso_prediccion');
+            if (!response.ok) throw new Error('Error en la respuesta del servidor');
+            
+            const data = await response.json();
+
+            console.log(data)
+            updateProgressUI(data);
+            
+            // Si la prediccion está completo, detener el polling
+            if (data.is_complete) {
+                clearInterval(updateInterval);
+                showCompletionScreen(data);
+            }
+        } catch (error) {
+            console.error('Error obteniendo progreso:', error);
+            addConsoleMessage(`[ERROR] No se pudo obtener el progreso: ${error.message}`, 'danger');
+        }
+    }
+
+    
+    
+    // Función para actualizar la UI con los datos de progreso
+    function updateProgressUI(data) {
+        // Actualizar porcentaje
+        const percentage = ((data.current_step / data.total_steps) * 100 ).toFixed(2);
+        percentageElement.textContent = `${percentage}%`;
+        donutPercentage.textContent = `${percentage}%`;
         
-        $('#errorMessage').text(message);
-        const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
-        errorModal.show();
+        // Actualizar barra de progreso principal
+        mainProgressBar.style.width = `${percentage}%`;
+        mainProgressBar.setAttribute('aria-valuenow', percentage);
+        
+        // Actualizar gráfico de dona
+        donutChart.style.background = 
+            `conic-gradient(#4e54c8 ${percentage}%, #e9ecef ${percentage}%)`;
+        
+        // Actualizar estado
+        updateStatusBadge(data);
+        
+        // Actualizar subprogreso si existe
+        if (data.total_substeps > 0) {
+            subprogressContainer.classList.remove('d-none');
+            const substepPercentage = (data.current_substep / data.total_substeps) * 100;
+            subprogressBar.style.width = `${substepPercentage}%`;
+            substepText.textContent = `${data.current_substep}/${data.total_substeps}`;
+        } else {
+            subprogressContainer.classList.add('d-none');
+        }
+        
+        // Actualizar pasos
+        updateSteps(data);
+        
+        // Actualizar consola
+        if (data.current_message) {
+            addConsoleMessage(data.current_message, 'info');
+        }
+        
+        // Mantener solo los últimos mensajes
+        if (data.step_messages && data.step_messages.length > 0) {
+            const recentMessages = data.step_messages.slice(-10);
+            recentMessages.forEach(msg => {
+                if (!consoleOutput.innerHTML.includes(msg.message)) {
+                    addConsoleMessage(msg.message, 'info');
+                }
+            });
+        }
     }
     
-    // Event Listeners
-    $('#clearConsole').click(function() {
-        $('#messageConsole').empty();
-        consoleMessageCount = 0;
-    });
+    // Función para actualizar el badge de estado
+    function updateStatusBadge(data) {
+        let statusClass = 'bg-warning';
+        let statusIcon = 'bi-hourglass-split';
+        let statusText = 'En progreso';
+        
+        if (data.is_complete) {
+            statusClass = 'bg-success';
+            statusIcon = 'bi-check-circle-fill';
+            statusText = 'Completado';
+        } else if (data.percentage >= 80) {
+            statusClass = 'bg-info';
+            statusIcon = 'bi-hourglass-top';
+            statusText = 'Finalizando';
+        } else if (data.percentage >= 40) {
+            statusClass = 'bg-primary';
+            statusIcon = 'bi-arrow-repeat';
+            statusText = 'Procesando';
+        }
+        
+        statusBadge.className = `badge ${statusClass} p-2`;
+        statusBadge.innerHTML = `<i class="bi ${statusIcon} me-1"></i>${statusText}`;
+    }
     
-    $('#refreshBtn').click(function() {
-        if (isProcessing) {
-            fetchProgress();
+    function updateSteps(data) {
+        const steps = stepsContainer.querySelectorAll('.step-card');
+        
+        // IMPORTANTE: Si el servidor dice "Paso 1", restamos 1 para que coincida con el índice 0 del array
+        const currentStep = (data.current_step !== undefined) ? data.current_step - 1 : -1;
+        
+        steps.forEach((step, index) => {
+            const stepNumber = step.querySelector('.step-number');
+            const statusIcon = step.querySelector('.mt-2 i');
+            
+            // 1. Limpieza total de estados previos
+            step.classList.remove('completed-step', 'active-step');
+            stepNumber.classList.remove('bg-gradient-primary', 'bg-secondary');
+            
+            if (index < currentStep) {
+                // PASO COMPLETADO
+                step.classList.add('completed-step');
+                stepNumber.classList.add('bg-gradient-primary');
+                statusIcon.className = 'bi bi-check-circle-fill text-success fs-5';
+                
+            } else if (index === currentStep) {
+                // PASO ACTUAL (CARGANDO)
+                step.classList.add('active-step');
+                stepNumber.classList.add('bg-gradient-primary');
+                // Usamos 'bi-arrow-repeat' y añadimos nuestra clase de rotación
+                statusIcon.className = 'bi bi-arrow-repeat text-primary fs-5 spin2';
+                
+            } else {
+                // PASO PENDIENTE
+                stepNumber.classList.add('bg-secondary');
+                statusIcon.className = 'bi bi-clock text-muted fs-5';
+            }
+        });
+    }
+
+    // Función para agregar mensajes a la consola
+    function addConsoleMessage(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        let typeClass = 'text-info';
+        let prefix = '[INFO]';
+        
+        if (type === 'error' || message.includes('❌')) {
+            typeClass = 'text-danger';
+            prefix = '[ERROR]';
+        } else if (type === 'success' || message.includes('✅')) {
+            typeClass = 'text-success';
+            prefix = '[SUCCESS]';
+        } else if (type === 'warning' || message.includes('⚠️')) {
+            typeClass = 'text-warning';
+            prefix = '[WARNING]';
         }
-    });
+        
+        const messageElement = document.createElement('div');
+        messageElement.className = 'console-line';
+        messageElement.innerHTML = `
+            <span class="${typeClass}">[${timestamp}] ${prefix}</span> ${message}
+        `;
+        
+        // Obtenemos todos los mensajes actuales dentro del output
+        const existingMessages = Array.from(consoleOutput.children);
+
+
+        const isDuplicate = Array.from(consoleOutput.children).some(line => {
+            // 1. Clonamos el elemento para no romper el original
+            // 2. Buscamos el span del timestamp y lo ignoramos en la comparación
+            const currentMsgText = line.lastChild.textContent.trim();
+            const newMsgText = messageElement.lastChild.textContent.trim();
+            
+            return currentMsgText === newMsgText;
+        });
+
+        if (!isDuplicate) {
+            consoleOutput.appendChild(messageElement);
+        }   
+                
+
+        // Auto-scroll si está habilitado
+        if (autoScrollEnabled) {
+            const container = consoleOutput.parentElement;
+            container.scrollTop = container.scrollHeight;
+        }
+    }
     
-    $('#cancelBtn').click(function() {
-        if (confirm('¿Estás seguro de que quieres cancelar la predicción?')) {
-            clearInterval(progressInterval);
-            window.location.href = window.PREDICTION_MAIN_URL;
-        }
-    });
+    // Función para limpiar la consola
+    function clearConsole() {
+        consoleOutput.innerHTML = '';
+        addConsoleMessage('Consola limpiada', 'info');
+    }
     
-    // Estilos CSS adicionales
-    const style = document.createElement('style');
-    style.textContent = `
-        .step-card {
-            transition: all 0.3s ease;
-            border-radius: 10px;
+    // Función para alternar auto-scroll
+    function toggleAutoScroll() {
+        autoScrollEnabled = !autoScrollEnabled;
+        const button = document.getElementById('auto-scroll-toggle');
+        const icon = button.querySelector('i');
+        
+        if (autoScrollEnabled) {
+            icon.className = 'bi bi-arrow-down-square-fill';
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-success');
+        } else {
+            icon.className = 'bi bi-arrow-down-square';
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
         }
-        .step-card.active-step {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border: 2px solid #4e54c8;
+    }
+
+    const cancelBtn = document.getElementById('cancel-training');
+    cancelBtn.addEventListener('click', confirmCancelTraining);
+
+    async function confirmCancelTraining() {
+        if (confirm('¿Estás seguro de que deseas detener la predicción? Se perderá el progreso actual.')) {
+
+            // 1. UI Feedback inmediato
+            cancelBtn.disabled = true;
+            cancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Cancelando...';
+            
+            // 2. Detener procesos locales
+            clearInterval(updateInterval); 
+            addConsoleMessage('🛑 Cancelación confirmada. Redirigiendo...', 'warning');
+            
+            // 3. Redirección inmediata a la página de configuración
+            window.location.href = '/prediccion';
         }
-        .step-card.completed-step {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-        .step-progress-bar {
-            background: linear-gradient(90deg, #4e54c8, #8f94fb);
-            transition: width 0.5s ease;
-        }
-        .console-line {
-            border-left: 3px solid #28a745;
-            padding-left: 10px;
-            margin-bottom: 5px;
-        }
-        .text-purple {
-            color: #6f42c1 !important;
-        }
-        .progress-text {
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        }
-    `;
-    document.head.appendChild(style);
+    }
+    
+    // Función para mostrar la pantalla de finalización
+    function showCompletionScreen(data) {
+        // Actualizar resumen
+        document.getElementById('summary-time').textContent = elapsedTimeElement.textContent;
+        document.getElementById('summary-steps').textContent = 
+            `${data.current_step || 0}/${data.total_steps || 0}`;
+        
+
+        
+        // Mostrar sección de finalización
+        completionSection.classList.remove('d-none');
+        
+        // Agregar mensaje final a la consola
+        addConsoleMessage('🎉 Prediccion completado exitosamente!', 'success');
+        addConsoleMessage(`⏱️ Tiempo total: ${elapsedTimeElement.textContent}`, 'info');
+    }
+    
+    // Añadir mensaje inicial
+    addConsoleMessage('Conectando con el servidor...', 'info');
 });

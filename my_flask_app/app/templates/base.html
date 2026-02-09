@@ -70,17 +70,12 @@
             </a>
           </li>
           <li class="nav-item">
+            <a class="nav-link text-white {% if request.endpoint == 'main.entrenamiento' %}active{% endif %}" href="{{ url_for('main.entrenamiento') }}">🧠 Entrenar Modelos</a>          
+          </li>
+          <li class="nav-item">
             <a class="nav-link text-white {% if request.endpoint == 'main.prediccion' %}active{% endif %}" href="{{ url_for('main.prediccion') }}">
               📈 Predicciones
             </a>
-          </li>
-          <li><hr class="dropdown-divider bg-secondary"></li>
-          <li class="nav-item">
-            <a class="nav-link text-white" href="#">📊 Análisis de datos</a>
-          </li>
-
-          <li class="nav-item">
-            <a class="nav-link text-white {% if request.endpoint == 'main.entrenamiento' %}active{% endif %}" href="{{ url_for('main.entrenamiento') }}">🧠 Entrenar Modelos</a>          
           </li>
         </ul>
       </div>

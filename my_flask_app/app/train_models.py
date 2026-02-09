@@ -232,20 +232,22 @@ def train_and_save(progress_tracker, config):
     progress_tracker.update_progress(4, f"\n🎯 Entrenando {len(pipelines)} modelos...")
     
     for name, pipeline in pipelines.items():
-        progress_tracker.update_progress(None, f"\n➡️ Entrenando: {name}", is_substep=True, substep_total=total_substeps)
+            progress_tracker.update_progress(None, f"\n➡️ Entrenando: {name}", is_substep=True, substep_total=total_substeps)
 
 
-        try:
-            # Entrenar pipeline
-            pipeline.fit(train_df)
-            progress_tracker.update_progress(None, f"   ✅ Entrenado exitosamente", is_substep=True)            
-            # Guardar modelo
-            save_path = MODELS_PATH / f"{name}_model.pkl"
-            joblib.dump(pipeline, save_path, compress=3)  # compress para archivos más pequeños
-            progress_tracker.update_progress(None, f"   💾 Guardado en: {save_path}", is_substep=True)            
-            
-        except Exception as e:
-            progress_tracker.update_progress(4, f"   ❌ Error entrenando {name}: {str(e)}")       
+            try:
+                # Entrenar pipeline
+                pipeline.fit(train_df)
+                progress_tracker.update_progress(None, f"   ✅ Entrenado exitosamente", is_substep=True)            
+                # Guardar modelo
+                save_path = MODELS_PATH / f"{name}_model.pkl"
+                joblib.dump(pipeline, save_path, compress=3)  # compress para archivos más pequeños
+                progress_tracker.update_progress(None, f"   💾 Guardado en: {save_path}", is_substep=True)            
+                
+            except Exception as e:
+                progress_tracker.update_progress(4, f"   ❌ Error entrenando {name}: {str(e)}")     
+        
+
 
 
     # Verificar que se guardaron

@@ -15,6 +15,7 @@
         </div>
     </div>
 
+    {% if not show_results %}
     <!-- Formulario para predicciones -->
     <div class="row mb-5">
         <div class="col-md-8 offset-md-2">
@@ -23,7 +24,7 @@
                     <h4 class="mb-0"><i class="bi bi-sliders me-2"></i>Configurar Predicción</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('main.prediccion') }}">
+                    <form method="POST" action="{{ url_for('main.prediccion_proceso') }}">
                         <div class="mb-4">
                             <label for="horizon_days" class="form-label fw-bold">
                                 <i class="bi bi-calendar-range me-2"></i>Horizonte de Predicción
@@ -45,7 +46,7 @@
                         </div>
                         
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" id="startPredictionBtn" class="btn btn-primary btn-lg">
                                 <i class="bi bi-lightning-charge me-2"></i>Generar Predicciones
                             </button>
                         </div>
@@ -54,6 +55,8 @@
             </div>
         </div>
     </div>
+    {% endif %}
+
 
     {% if show_results %}
     <!-- Resultados de Predicción -->
@@ -237,13 +240,12 @@
 </style>
 {% endblock %}
 
+
 {% block extra_js %}
     <script>
-    $(document).ready(function() {
-        $('#predictionForm').submit(function(e) {
-            const horizonDays = $('#horizon_days').val();
-            localStorage.setItem('prediction_horizon', horizonDays);
-        });
-    });
+        window.PREDICTION_PROCESS_URL = "{{ url_for('main.prediccion_proceso') }}";
+        window.PREDICTION_PROGRESS_URL = "{{ url_for('main.prediccion_progreso') }}";
     </script>
+
+    <script src="{{ url_for('static', filename='js/prediction.js') }}"></script>
 {% endblock %}

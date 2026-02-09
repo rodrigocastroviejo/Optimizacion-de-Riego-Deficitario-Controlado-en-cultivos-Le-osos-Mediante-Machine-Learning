@@ -28,7 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Iniciar polling de progreso
     startProgressPolling();
-    
+
+
     // Función para actualizar el tiempo transcurrido
     function updateElapsedTime() {
         const now = new Date();
@@ -70,11 +71,13 @@ document.addEventListener('DOMContentLoaded', function() {
             addConsoleMessage(`[ERROR] No se pudo obtener el progreso: ${error.message}`, 'danger');
         }
     }
+
+    
     
     // Función para actualizar la UI con los datos de progreso
     function updateProgressUI(data) {
         // Actualizar porcentaje
-        const percentage = data.percentage;
+        const percentage = ((data.current_step / data.total_steps) * 100 ).toFixed(2);
         percentageElement.textContent = `${percentage}%`;
         donutPercentage.textContent = `${percentage}%`;
         
@@ -142,37 +145,41 @@ document.addEventListener('DOMContentLoaded', function() {
         statusBadge.innerHTML = `<i class="bi ${statusIcon} me-1"></i>${statusText}`;
     }
     
-    // Función para actualizar los pasos visualmente
     function updateSteps(data) {
         const steps = stepsContainer.querySelectorAll('.step-card');
-        const currentStep = data.current_step || 0;
+        
+        // IMPORTANTE: Si el servidor dice "Paso 1", restamos 1 para que coincida con el índice 0 del array
+        const currentStep = (data.current_step !== undefined) ? data.current_step - 1 : -1;
         
         steps.forEach((step, index) => {
             const stepNumber = step.querySelector('.step-number');
             const statusIcon = step.querySelector('.mt-2 i');
             
-            // Resetear todas las tarjetas
+            // 1. Limpieza total de estados previos
             step.classList.remove('completed-step', 'active-step');
             stepNumber.classList.remove('bg-gradient-primary', 'bg-secondary');
             
             if (index < currentStep) {
-                // Paso completado
+                // PASO COMPLETADO
                 step.classList.add('completed-step');
                 stepNumber.classList.add('bg-gradient-primary');
                 statusIcon.className = 'bi bi-check-circle-fill text-success fs-5';
+                
             } else if (index === currentStep) {
-                // Paso activo
+                // PASO ACTUAL (CARGANDO)
                 step.classList.add('active-step');
                 stepNumber.classList.add('bg-gradient-primary');
-                statusIcon.className = 'bi bi-arrow-repeat text-primary fs-5 spin';
+                // Usamos 'bi-arrow-repeat' y añadimos nuestra clase de rotación
+                statusIcon.className = 'bi bi-arrow-repeat text-primary fs-5 spin2';
+                
             } else {
-                // Paso pendiente
+                // PASO PENDIENTE
                 stepNumber.classList.add('bg-secondary');
                 statusIcon.className = 'bi bi-clock text-muted fs-5';
             }
         });
     }
-    
+
     // Función para agregar mensajes a la consola
     function addConsoleMessage(message, type = 'info') {
         const timestamp = new Date().toLocaleTimeString();
@@ -241,6 +248,25 @@ document.addEventListener('DOMContentLoaded', function() {
             icon.className = 'bi bi-arrow-down-square';
             button.classList.remove('btn-success');
             button.classList.add('btn-outline-secondary');
+        }
+    }
+
+    const cancelBtn = document.getElementById('cancel-training');
+    cancelBtn.addEventListener('click', confirmCancelTraining);
+
+    async function confirmCancelTraining() {
+        if (confirm('¿Estás seguro de que deseas detener el entrenamiento? Se perderá el progreso actual.')) {
+
+            // 1. UI Feedback inmediato
+            cancelBtn.disabled = true;
+            cancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Cancelando...';
+            
+            // 2. Detener procesos locales
+            clearInterval(updateInterval); 
+            addConsoleMessage('🛑 Cancelación confirmada. Redirigiendo...', 'warning');
+            
+            // 3. Redirección inmediata a la página de configuración
+            window.location.href = '/entrenamiento';
         }
     }
     

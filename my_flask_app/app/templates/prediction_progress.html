@@ -1,223 +1,253 @@
 {% extends "base.html" %}
 
-{% block title %}Progreso de Predicción - AgroData{% endblock %}
+{% block title %}Progreso del Entrenamiento - AgroData{% endblock %}
 
 {% block content %}
 <div class="container">
-    <div class="row justify-content-center mt-4">
-        <div class="col-lg-10">
-            <!-- Tarjeta Principal -->
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-primary text-white py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-0">
-                                <i class="fas fa-cogs me-2"></i>Proceso de Predicción en Tiempo Real
-                            </h4>
-                            <p class="mb-0 mt-1 opacity-75">
-                                Generando predicciones de variables climáticas y cálculo de riego
-                            </p>
-                        </div>
-                        <div class="text-end">
-                            <span id="elapsedTime" class="badge bg-light text-dark">00:00</span>
-                        </div>
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">📊 Progreso de la Predicción</h1>
+                    <p class="text-muted mb-0">Sigue el progreso de predicción de tus modelos en tiempo real</p>
+                </div>
+                <div class="text-end">
+                    <div class="badge bg-info p-2">
+                        <i class="bi bi-clock me-1"></i>
+                        <span id="elapsed-time">00:00:00</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="card-body p-4">
-                    <!-- Barra de Progreso Principal -->
-                    <div class="mb-5">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="fw-bold text-primary">Progreso General</span>
-                            <span id="overallPercentage" class="fw-bold">0%</span>
+    <!-- Progress Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Progreso General</h5>
+                        <h3 class="mb-0" style="color: #4e54c8;" id="percentage">0%</h3>
+                    </div>
+                    
+                    <!-- Main Progress Bar -->
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="main-progress-bar" 
+                             class="progress-bar progress-bar-striped" 
+                             role="progressbar" 
+                             style="width: 0%; background: linear-gradient(90deg, #4e54c8, #8f94fb);">
                         </div>
-                        <div class="progress" style="height: 25px;">
-                            <div id="overallProgressBar" 
-                                 class="progress-bar progress-bar-striped progress-bar-animated" 
+                    </div>
+                    
+                    <!-- Sub-progress Bar (for substeps) -->
+                    <div id="subprogress-container" class="d-none">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Progreso del paso actual</small>
+                            <small class="text-muted" id="substep-text">0/0</small>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div id="subprogress-bar" 
+                                 class="progress-bar bg-info" 
                                  role="progressbar" 
-                                 style="width: 0%; background: linear-gradient(90deg, #4e54c8, #8f94fb);"
-                                 aria-valuenow="0" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                <span class="progress-text">0%</span>
+                                 style="width: 0%; background: linear-gradient(90deg, #7a81ff, #b8bcff);">
                             </div>
-                        </div>
-                        <div class="mt-2">
-                            <small class="text-muted" id="currentStep">Iniciando...</small>
-                        </div>
-                    </div>
-
-                    <!-- Pasos del Proceso -->
-                    <div class="row mb-4">
-                        {% set steps = [
-                            {'icon': 'fa-box', 'title': 'Cargar Modelos', 'desc': 'Carga de modelos entrenados'},
-                            {'icon': 'fa-database', 'title': 'Cargar Datos', 'desc': 'Datos históricos recientes'},
-                            {'icon': 'fa-chart-line', 'title': 'Generar Predicciones', 'desc': 'Ejecutar modelos predictivos'},
-                            {'icon': 'fa-layer-group', 'title': 'Unificar Datos', 'desc': 'Integrar todas las predicciones'},
-                            {'icon': 'fa-tint', 'title': 'Calcular Riego', 'desc': 'Fórmula de necesidades hídricas'},
-                            {'icon': 'fa-chart-bar', 'title': 'Generar Gráficos', 'desc': 'Visualización de resultados'}
-                        ] %}
-                        
-                        {% for step in steps %}
-                        <div class="col-md-4 col-lg-2 mb-3">
-                            <div class="card step-card border-0 text-center h-100" 
-                                 id="step{{ loop.index0 }}">
-                                <div class="card-body py-3">
-                                    <div class="step-icon mb-2">
-                                        <i class="fas {{ step.icon }} fa-2x text-muted"></i>
-                                    </div>
-                                    <h6 class="card-title mb-1">{{ step.title }}</h6>
-                                    <p class="card-text text-muted small mb-0">{{ step.desc }}</p>
-                                </div>
-                                <div class="card-footer border-0 bg-transparent p-0">
-                                    <div class="step-progress" style="height: 4px; background: #e9ecef;">
-                                        <div class="step-progress-bar" style="width: 0%; height: 100%;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Consola de Mensajes -->
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">
-                                <i class="fas fa-terminal me-2"></i>Consola de Progreso
-                                <small class="text-muted ms-2" id="messageCount">0 mensajes</small>
-                            </h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <div id="messageConsole" 
-                                 style="height: 300px; overflow-y: auto; background: #1e1e1e; color: #d4d4d4;"
-                                 class="p-3 font-monospace small">
-                                <div class="console-line">
-                                    <span class="text-success">$</span> 
-                                    <span class="ms-2">Iniciando proceso de predicción...</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-light py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Los mensajes se actualizan automáticamente
-                                </small>
-                                <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-broom me-1"></i>Limpiar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contador de Predicciones -->
-                    <div class="row mt-4">
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h2 id="modelsLoaded" class="text-primary mb-1">0</h2>
-                                    <p class="text-muted mb-0">Modelos Cargados</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h2 id="variablesPredicted" class="text-success mb-1">0</h2>
-                                    <p class="text-muted mb-0">Variables Predichas</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h2 id="daysPredicted" class="text-warning mb-1">0</h2>
-                                    <p class="text-muted mb-0">Días Predichos</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h2 id="irrigationCalculated" class="text-info mb-1">0</h2>
-                                    <p class="text-muted mb-0">mm Riego Calculado</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Mensaje de Finalización -->
-                    <div id="completionMessage" class="mt-4 text-center" style="display: none;">
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <h4 class="alert-heading">
-                                <i class="fas fa-check-circle me-2"></i>¡Predicción Completada!
-                            </h4>
-                            <p id="completionText" class="mb-0">
-                                Redirigiendo a los resultados...
-                            </p>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                        <div class="text-center mt-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Cargando...</span>
-                            </div>
-                            <p class="mt-2 text-muted">Preparando visualización de resultados...</p>
                         </div>
                     </div>
                 </div>
-
-                <div class="card-footer bg-light py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted">
-                                <i class="fas fa-clock me-1"></i>
-                                Tiempo transcurrido: <span id="elapsedTimeDetailed">0 segundos</span>
-                            </small>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <!-- Donut Chart -->
+                    <div class="position-relative mb-3">
+                        <div id="donut-chart" class="mx-auto"
+                             style="width: 150px; height: 150px; border-radius: 50%; 
+                                    background: conic-gradient(#4e54c8 0%, #e9ecef 0%);">
+                            <div class="position-absolute top-50 start-50 translate-middle 
+                                        bg-white rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 100px; height: 100px;">
+                                <div>
+                                    <h2 class="mb-0 fw-bold" id="donut-percentage">0%</h2>
+                                    <small class="text-muted">Completado</small>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <button id="cancelBtn" class="btn btn-outline-danger btn-sm me-2">
-                                <i class="fas fa-times me-1"></i>Cancelar
-                            </button>
-                            <button id="refreshBtn" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-sync-alt me-1"></i>Actualizar
-                            </button>
+                    </div>
+                    
+                    <!-- Status -->
+                    <div id="status-container">
+                        <span class="badge bg-warning p-2" id="status-badge">
+                            <i class="bi bi-hourglass-split me-1"></i>Iniciando...
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Steps -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Pasos de la Predicción</h5>
+                    
+                    <div class="row g-3" id="steps-container">
+                        <!-- Steps will be dynamically populated -->
+                        <div class="col-md-3">
+                            <div class="step-card card border p-3 text-center completed-step">
+                                <div class="step-number bg-gradient-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                                    1
+                                </div>
+                                <h6 class="mb-2">Carga de modelos</h6>
+                                <p class="text-muted small mb-0">Se cargan desde archivo los modelos serializados</p>
+                                <div class="mt-2">
+                                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="step-card card border p-3 text-center active-step">
+                                <div class="step-number bg-gradient-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                                    2
+                                </div>
+                                <h6 class="mb-2">Carga de Datos</h6>
+                                <p class="text-muted small mb-0">Leyendo archivo de datos</p>
+                                <div class="mt-2">
+                                    <i class="bi bi-arrow-repeat text-primary fs-5 spin"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="step-card card border p-3 text-center">
+                                <div class="step-number bg-secondary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                                    3
+                                </div>
+                                <h6 class="mb-2">Predicción</h6>
+                                <p class="text-muted small mb-0">Se predice con los modelos y los datos cargados</p>
+                                <div class="mt-2">
+                                    <i class="bi bi-clock text-muted fs-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="step-card card border p-3 text-center">
+                                <div class="step-number bg-secondary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                                    4
+                                </div>
+                                <h6 class="mb-2">Calcular riego RDC</h6>
+                                <p class="text-muted small mb-0">Se aplican las formulas agrarias</p>
+                                <div class="mt-2">
+                                    <i class="bi bi-clock text-muted fs-5 spin2"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="step-card card border p-3 text-center">
+                                <div class="step-number bg-secondary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                                    5
+                                </div>
+                                <h6 class="mb-2">Generación de gráficos</h6>
+                                <p class="text-muted small mb-0">Se generan gráficos para visualizar los datos predichos</p>
+                                <div class="mt-2">
+                                    <i class="bi bi-clock text-muted fs-5 spin2"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal de Error -->
-<div class="modal fade" id="errorModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Error en la Predicción
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p id="errorMessage">Ha ocurrido un error durante el proceso de predicción.</p>
-                <div class="alert alert-warning">
-                    <small>
-                        <i class="fas fa-lightbulb me-1"></i>
-                        <strong>Sugerencias:</strong>
-                        <ul class="mb-0 mt-1">
-                            <li>Verifica que los modelos estén correctamente entrenados</li>
-                            <li>Asegúrate de tener datos históricos disponibles</li>
-                            <li>Revisa los permisos de los archivos</li>
-                        </ul>
-                    </small>
+    <!-- Console Output -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-terminal me-2"></i>Consola de Salida
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" id="clear-console">
+                                <i class="bi bi-trash"></i> Limpiar
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="auto-scroll-toggle">
+                                <i class="bi bi-arrow-down-square"></i> Auto-scroll
+                            </button>
+                            <button class="btn btn-sm btn-danger" id="cancel-training">
+                                <i class="bi bi-x-circle"></i> Cancelar Predicción
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="console-container border rounded p-3 bg-dark text-light" 
+                         style="height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                        <div id="console-output">
+                            <div class="console-line">
+                                <span class="text-info">[INICIO]</span> Iniciando proceso de Predicción...
+                            </div>
+                            <div class="console-line">
+                                <span class="text-success">[INFO]</span> Conectando con el servidor...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Los mensajes se actualizan automáticamente cada 2 segundos
+                        </small>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <a href="{{ url_for('main.prediccion') }}" class="btn btn-primary">
-                    <i class="fas fa-redo me-1"></i>Reintentar
-                </a>
+        </div>
+    </div>
+
+    <div id="completion-section" class="d-none mt-5">
+        <div class="card border-success shadow-lg">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <div class="bg-success bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 100px; height: 100px;">
+                        <i class="bi bi-check-circle-fill fs-1"></i>
+                    </div>
+                </div>
+                <h2 class="text-success mb-3">¡Predicción Completada!</h2>
+                <p class="text-muted mb-4">Puede visualizar las predicciones en la página destinada para ello.</p>
+                
+                <div class="d-flex justify-content-center mb-4">
+                    <a href="{{ url_for('main.prediccion_resultados') }}" class="btn btn-primary px-5">
+                        Ir a resultados <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+                
+                <div class="mt-4 text-start mx-auto" style="max-width: 500px;">
+                    <h6 class="mb-3">Resumen de la predicción:</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Tiempo total:</span>
+                            <strong id="summary-time">00:00:00</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Pasos completados:</span>
+                            <strong id="summary-steps">0/0</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Estado:</span>
+                            <span class="badge bg-success">Completado</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -225,12 +255,5 @@
 {% endblock %}
 
 {% block extra_js %}
-
-    <script>
-        window.PREDICTION_PROCESS_URL = "{{ url_for('main.prediccion_proceso') }}";
-        window.API_PREDICTION_PROGRESS_URL = "{{ url_for('main.api_progreso_prediccion') }}";
-        window.PREDICTION_RESULTS_URL = "{{ url_for('main.prediccion_resultados') }}";
-        window.PREDICTION_MAIN_URL = "{{ url_for('main.prediccion') }}";
-    </script>
     <script src="{{ url_for('static', filename='js/prediction_progress.js') }}"></script>
 {% endblock %}

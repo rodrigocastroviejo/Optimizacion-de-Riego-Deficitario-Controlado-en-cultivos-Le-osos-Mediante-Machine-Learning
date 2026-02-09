@@ -342,7 +342,7 @@ $(document).ready(function() {
         $('#test_size').val(defaultRows);
 
         // Actualizar info visual
-        $('#slider-info').html(`<i class="fas fa-info-circle me-1"></i> Archivo con ${currentFileRows.toLocaleString()} filas. Test set entre ${minRows} y ${maxRows} filas.`);
+        $('#slider-info').html(`<i class="fas fa-info-circle me-1"></i> Archivo con ${currentFileRows.toLocaleString()} filas. Selecciona el tamaño del conjunto de test entre ${minRows} y ${maxRows} filas.`);
         
         updateDoughnutChart(defaultRows);
     }

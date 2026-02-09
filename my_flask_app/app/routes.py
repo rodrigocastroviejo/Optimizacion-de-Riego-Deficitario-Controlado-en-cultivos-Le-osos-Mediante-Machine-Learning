@@ -75,7 +75,7 @@ def login():
             login_user(user)
             flash("Sesión iniciada.", "success")
             next_page = request.args.get("next")
-            return redirect(next_page or url_for("main.upload_file"))
+            return redirect(next_page or url_for("main.index"))
         flash("Usuario o contraseña incorrectos.", "danger")
         return redirect(url_for("main.login"))
     return render_template("login.html")
@@ -126,16 +126,18 @@ def upload_file():
 # RUTAS DE PREDICCIÓN
 # ====================
 
-@main.route("/prediccion", methods=["GET", "POST"])
+
+@main.route("/prediccion", methods=["GET"])
 @login_required
 def prediccion():
     """Ruta principal de predicciones"""
-    if request.method == "POST":
-        # Redirigir a la página de progreso
-        return render_template("prediction_progress.html")
-    
-    # GET request - mostrar formulario
     return render_template("prediction.html", show_results=False)
+
+@main.route("/prediccion/progreso")
+@login_required
+def prediccion_progreso():
+    """Página para monitorear el progreso del entrenamiento"""
+    return render_template("prediction_progress.html")
 
 
 @main.route("/api/progreso_prediccion")
@@ -205,7 +207,11 @@ def prediccion_proceso():
         })
         
     except Exception as e:
-        progress_tracker.update_progress(0, f'❌ Error en el proceso: {str(e)}')
+        import traceback
+        progress_tracker.update_progress(0, traceback.print_exc())
+
+        progress_tracker.update_progress(0, f'❌ Error en el proceso: {traceback.print_exc()}')
+
         progress_tracker.complete_progress()
         return jsonify({'error': str(e)}), 500
 
@@ -264,14 +270,14 @@ def prediccion_resultados():
 def descargar_predicciones():
     """Descargar predicciones como CSV"""
     try:
-        if 'predictions_data' not in session or 'irrigation_data' not in session:
+        if 'predictions_data' not in PREDICTION_RESULTS or 'irrigation_data' not in PREDICTION_RESULTS:
             flash("No hay datos de predicción para descargar.", "warning")
             return redirect(url_for("main.prediccion"))
         
         # Recuperar datos de la sesión
-        predictions_df = pd.read_json(session['predictions_data'])
-        irrigation_df = pd.read_json(session['irrigation_data'])
-        horizon_days = session.get('horizon_days', 30)
+        predictions_df = pd.read_json(PREDICTION_RESULTS['predictions_data'])
+        irrigation_df = pd.read_json(PREDICTION_RESULTS['irrigation_data'])
+        horizon_days = PREDICTION_RESULTS.get('horizon_days', 30)
         
         # Crear un Excel con dos hojas
         output = io.BytesIO()
@@ -320,6 +326,12 @@ def descargar_predicciones():
 @main.route("/entrenamiento", methods=["GET"])
 @login_required
 def entrenamiento():
+    """Ruta principal de predicciones"""
+    return render_template("training.html", show_results=False)
+
+@main.route("/entrenamiento/cancelar", methods=["GET"])
+@login_required
+def cancelar_entrenamiento():
     """Ruta principal de predicciones"""
     return render_template("training.html", show_results=False)
 
