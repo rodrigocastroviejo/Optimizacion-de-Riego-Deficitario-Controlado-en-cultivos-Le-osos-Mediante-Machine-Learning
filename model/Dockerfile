@@ -9,7 +9,7 @@ COPY requirements.txt .
 # Instalar dependencias 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Jupyter Notebook
+# Install Jupyter Notebok
 RUN pip install -no-cache-dir jupyter
 
 # Copy the current directory contents into the container at /app
