@@ -194,21 +194,9 @@ $(document).ready(function() {
             }
         });
         
-        // Cargar historial de entrenamientos
-        loadTrainingHistory();
     }
     
-    function loadTrainingHistory() {
-        // En una implementación real, harías una petición al servidor
-        // Por ahora, mostramos un mensaje estático
-        $('#trainingHistory').html(`
-            <div class="text-center py-3">
-                <i class="fas fa-clock fa-2x text-muted mb-3"></i>
-                <p class="text-muted mb-0">No hay entrenamientos previos</p>
-            </div>
-        `);
-    }
-    
+
     function updateDoughnutChart(testRows) {
         if (!currentFileRows) return;
         // Porcentaje de entrenamiento = ((Total - Test) / Total) * 100

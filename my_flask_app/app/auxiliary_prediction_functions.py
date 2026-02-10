@@ -24,7 +24,69 @@ sns.set_palette("husl")
 # FUNCIONES DE PREDICCIÓN
 # ====================
 
+def load_selected_models(selected_types, progress_tracker):
+    """
+    Carga únicamente los modelos especificados en la lista selected_types.
+    
+    Args:
+        selected_types (list): Lista de cadenas, ej: ["sarima", "var", "sarimax", "lstm"]
+        progress_tracker: Objeto para actualizar el progreso
+        
+    Returns:
+        dict: Diccionario con los modelos cargados {nombre: objeto_modelo}
+    """
+    # Lo convertimos a lista, ya que originalmente es un string 
+    selected_types = [selected_types]
+    
+    progress_tracker.update_progress(1, f'🔍 Buscando modelos seleccionados: {", ".join(selected_types)}...')
+    
+    models = {}
+    
+    # 1. Validación del directorio
+    if not MODELS_PATH.exists():
+        progress_tracker.update_progress(1, f'❌ Directorio no encontrado: {MODELS_PATH}')
+        return models  # Devuelve solo diccionario vacío
 
+    # 2. Obtención y filtrado de archivos
+    all_files = list(MODELS_PATH.glob("*.pkl"))
+    print(all_files)
+    files_to_load = []
+    
+    for f in all_files:
+        filename = f.name.lower()
+        for prefix in selected_types:
+            # Buscamos prefijo + guion bajo (ej: "var_") para exactitud
+            if filename.startswith(f"{prefix}_"):
+                files_to_load.append(f)
+                break 
+
+    # 3. Validación de archivos encontrados
+    if not files_to_load:
+        progress_tracker.update_progress(1, '⚠️ No se encontraron archivos para los modelos seleccionados')
+        return models  # Devuelve solo diccionario vacío
+    
+    progress_tracker.update_progress(1, f'📁 Encontrados {len(files_to_load)} archivos coincidentes')
+    
+    # 4. Carga de modelos
+    for i, file_path in enumerate(files_to_load):
+        model_name = file_path.stem.replace('_model', '')
+        
+        progress_tracker.update_progress(1, f'  📥 Cargando modelo: {model_name}', 
+                       is_substep=True, substep_total=len(files_to_load))
+        
+        try:
+            model = joblib.load(file_path)
+            models[model_name] = model
+            
+            progress_tracker.update_progress(1, f'    ✅ {model_name} cargado exitosamente',
+                           is_substep=True, substep_total=len(files_to_load))
+        except Exception as e:
+            progress_tracker.update_progress(1, f'    ❌ Error cargando {model_name}: {str(e)}',
+                           is_substep=True, substep_total=len(files_to_load))
+    
+    progress_tracker.update_progress(1, f'📊 Total modelos cargados: {len(models)}')
+    
+    return models 
 
 def load_all_models(progress_tracker):
     """Cargar modelos con actualización de progreso"""
@@ -297,7 +359,7 @@ def calculate_irrigation(predictions_df, progress_tracker):
     return irrigation_df
 
 
-def create_prediction_plots(predictions_df, irrigation_df, last_data, progress_tracker):
+def create_prediction_plots(predictions_df, irrigation_df, progress_tracker):
     """Crear gráficos con actualización de progreso"""
     progress_tracker.update_progress(6, '🎨 Generando visualizaciones...')
     

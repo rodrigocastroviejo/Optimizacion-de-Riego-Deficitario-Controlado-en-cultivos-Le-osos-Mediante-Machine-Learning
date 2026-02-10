@@ -19,7 +19,7 @@ register_custom_classes()
 
 from app.progress_tracker import Progress_tracker
 
-from app.auxiliary_prediction_functions import load_all_models, load_latest_data, make_predictions, unify_predictions, calculate_irrigation, create_prediction_plots
+from app.auxiliary_prediction_functions import load_selected_models, make_predictions, unify_predictions, calculate_irrigation, create_prediction_plots
 
 from app.train_models import train_and_save, Config
 
@@ -159,13 +159,17 @@ def prediccion_proceso():
         horizon_days = int(request.form.get("horizon_days", 30))
         horizon_days = min(horizon_days, 365)
 
+
+        selected_models = request.form.get("models")
+
+
         # Ejecutar predicción (en la práctica, esto debería ser en un hilo separado)
         # Por simplicidad, lo hacemos sincrónico
         progress_tracker.update_progress(0, '🚀 Iniciando proceso de predicción...')
         
 
         # Paso 1: Cargar modelos
-        models = load_all_models(progress_tracker)
+        models = load_selected_models(selected_models, progress_tracker)
         if not models:
             progress_tracker.update_progress(1, '❌ No se pudieron cargar modelos')
             progress_tracker.complete_progress()
@@ -173,10 +177,11 @@ def prediccion_proceso():
         
 
         # Paso 2: Cargar datos
-        last_data = load_latest_data(progress_tracker)
+        prediction_file = request.form.get("data_file")
+
         
         # Paso 3: Hacer predicciones
-        predictions = make_predictions(models, last_data, horizon_days, progress_tracker)
+        predictions = make_predictions(models, prediction_file, horizon_days, progress_tracker)
         if not predictions:
             progress_tracker.update_progress(3, '❌ No se pudieron generar predicciones')
             progress_tracker.complete_progress()
@@ -189,7 +194,7 @@ def prediccion_proceso():
         irrigation_df = calculate_irrigation(unified_predictions, progress_tracker)
         
         # Paso 6: Crear gráficos
-        plots = create_prediction_plots(unified_predictions, irrigation_df, last_data, progress_tracker)
+        plots = create_prediction_plots(unified_predictions, irrigation_df, progress_tracker)
         
         # Guardar resultados en sesión
         PREDICTION_RESULTS['predictions_data'] = unified_predictions.to_json()
@@ -316,6 +321,25 @@ def descargar_predicciones():
         print(f"❌ Error al descargar: {str(e)}")
         flash(f"Error al descargar: {str(e)}", "danger")
         return redirect(url_for("main.prediccion"))
+    
+
+@main.route('/api/check_trained_models')
+def check_trained_models():
+    # Lista de prefijos que buscamos
+    prefixes = ["sarima", "var", "sarimax", "lstm"]
+    available_types = set()
+    
+    if MODELS_PATH.exists():
+        # Listamos archivos .pkl y verificamos el inicio del nombre
+        for file in MODELS_PATH.glob("*.pkl"):
+            filename = file.name.lower()
+            for p in prefixes:
+                if filename.startswith(f"{p}_"):
+                    available_types.add(p)
+    
+    return jsonify({
+        "available": list(available_types)
+    })
 
 
 

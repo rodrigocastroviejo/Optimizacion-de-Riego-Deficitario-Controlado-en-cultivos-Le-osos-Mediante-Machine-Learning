@@ -30,9 +30,9 @@ header {
   color: #ffc107;
 }
 
-/* ======================================= */
-/* ESTILOS ESPECÍFICOS PARA ENTRENAMIENTO */
-/* ======================================= */
+/* ================================================= */
+/* ESTILOS ESPECÍFICOS PARA ENTRENAMIENTO/PREDICCION */
+/* ================================================= */
 
 /* Números de paso */
 .step-number {
@@ -225,10 +225,32 @@ header {
     }
 }
 
+/* Estilo para tarjetas de modelos no entrenados */
+.model-select-card.disabled {
+    opacity: 0.6;
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+    border: 1px dashed #dee2e6;
+    pointer-events: none; /* Evita clicks en toda la tarjeta */
+}
 
-/* ================================================ */
-/* ESTILOS PARA LA PÁGINA DE PROGRESO ENTRENAMIENTO */
-/* ================================================ */
+.model-select-card.disabled .model-icon {
+    filter: grayscale(100%);
+    background-color: #6c757d !important;
+}
+
+.unavailable-badge {
+    font-size: 0.7rem;
+    display: block;
+    margin-top: 5px;
+    color: #dc3545;
+    font-weight: bold;
+}
+
+
+/* =========================================================== */
+/* ESTILOS PARA LA PÁGINA DE PROGRESO ENTRENAMIENTO/PREDICCION */
+/* =========================================================== */
 
 /* Animación de giro */
 .spin2 {
