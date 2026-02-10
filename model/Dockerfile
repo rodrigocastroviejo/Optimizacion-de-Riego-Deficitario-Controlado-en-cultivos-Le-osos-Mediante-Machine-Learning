@@ -7,23 +7,22 @@ WORKDIR /app
 # Install Jupyter Notebook
 RUN pip install jupyter
 
-# Set the working directory to /app
-WORKDIR /app
-
 # Copy the current directory contents into the container at /app
 COPY ./ /app
 
 # Install any needed packages specified in requirements.txt
-# RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Make port 8888 available to the world outside this container
-EXPOSE 8888
+EXPOSE 8080
 
-RUN useradd rodrigo
+RUN useradd -m -s /bin/bash rodrigo
+
+RUN chown -R rodrigo:rodrigo /app
 
 USER rodrigo
 
 # Run Jupyter Notebook when the container launches
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8080", "--no-browser", "--allow-root"]
 
 # cloudflared tunnel --url http://localhost:8888 --protocol http2
