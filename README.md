@@ -201,9 +201,8 @@ docker logs -f <nombre_del_contenedor_backend>
 
 Este proyecto está bajo licencia MIT - ver LICENSE para más detalles.
 
-✉️ Contacto
+✉️ Tutores del proyecto:
 
-Carlos Cambra - carlos.cambra@ubu.es
-Antonia Maiara Marques Do Nascimiento - ammarquesdo@ubu.es
-Proyecto vinculado al Grupo de Investigación XYZ
+Tutor: Carlos Cambra - carlos.cambra@ubu.es
+Co-tutor: Antonia Maiara Marques Do Nascimiento - ammarquesdo@ubu.es
 
