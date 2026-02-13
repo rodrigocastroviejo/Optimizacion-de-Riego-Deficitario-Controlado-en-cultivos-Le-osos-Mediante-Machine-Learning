@@ -19,7 +19,7 @@ register_custom_classes()
 
 from app.progress_tracker import Progress_tracker
 
-from app.auxiliary_prediction_functions import load_selected_models, make_predictions, unify_predictions, calculate_irrigation, create_prediction_plots
+from app.auxiliary_prediction_functions import load_selected_models, load_selected_file, make_future_predictions, unify_predictions, calculate_irrigation, create_prediction_plots
 
 from app.train_models import train_and_save, Config
 
@@ -144,6 +144,15 @@ def prediccion_progreso():
 def api_progreso_prediccion():
     return jsonify(PREDICTION_PROGRESS.get('prediccion', {}))
 
+@main.route("/api/prediccion_resultados")
+def api_progreso_resultados():
+    return jsonify(PREDICTION_RESULTS)
+
+@main.route("/prediccion/resultados")
+@login_required
+def prediccion_resultados():
+    """Página para mostrar los resultados de la prediccion"""
+    return render_template("prediction_results.html")
 
 @main.route("/prediccion/proceso", methods=["POST"])
 @login_required
@@ -177,28 +186,33 @@ def prediccion_proceso():
         
 
         # Paso 2: Cargar datos
-        prediction_file = request.form.get("data_file")
+        prediction_file_path = request.form.get("data_file")
+
+        prediction_file = load_selected_file(prediction_file_path, progress_tracker)
 
         
         # Paso 3: Hacer predicciones
-        predictions = make_predictions(models, prediction_file, horizon_days, progress_tracker)
+        predictions = make_future_predictions(progress_tracker, models, prediction_file, horizon_days)
         if not predictions:
             progress_tracker.update_progress(3, '❌ No se pudieron generar predicciones')
             progress_tracker.complete_progress()
             return jsonify({'error': 'No se pudieron generar predicciones'}), 400
         
         # Paso 4: Unificar predicciones
-        unified_predictions = unify_predictions(predictions, horizon_days, progress_tracker)
+        predictions = unify_predictions(predictions, progress_tracker)
         
         # Paso 5: Calcular riego
-        irrigation_df = calculate_irrigation(unified_predictions, progress_tracker)
-        
+        for name, prediction_df in predictions.items():
+            predictions[name] = calculate_irrigation(prediction_df, progress_tracker)
+            PREDICTION_RESULTS[f'predictions_data_{name}'] = predictions[f'{name}'].to_json(orient='records', date_format='iso')
+
+
         # Paso 6: Crear gráficos
-        plots = create_prediction_plots(unified_predictions, irrigation_df, progress_tracker)
+        plots = {}
+        for name, prediction_df in predictions.items():
+            plots[name] = create_prediction_plots(prediction_df, progress_tracker)
         
         # Guardar resultados en sesión
-        PREDICTION_RESULTS['predictions_data'] = unified_predictions.to_json()
-        PREDICTION_RESULTS['irrigation_data'] = irrigation_df.to_json()
         PREDICTION_RESULTS['horizon_days'] = horizon_days
         PREDICTION_RESULTS['prediction_plots'] = plots
         
@@ -220,107 +234,47 @@ def prediccion_proceso():
         progress_tracker.complete_progress()
         return jsonify({'error': str(e)}), 500
 
-@main.route("/prediccion/resultados")
+
+@main.route("/descargar_resultados")
 @login_required
-def prediccion_resultados():
-    """Mostrar resultados de la predicción completada"""
-    if 'predictions_data' not in PREDICTION_RESULTS:
-        flash("No hay resultados de predicción disponibles", "warning")
-        return redirect(url_for("main.prediccion"))
-    
+def descargar_resultados():
+
     try:
-        # Cargar datos de la sesión
-        unified_predictions = pd.read_json(PREDICTION_RESULTS['predictions_data'])
-        irrigation_df = pd.read_json(PREDICTION_RESULTS['irrigation_data'])
-        horizon_days = PREDICTION_RESULTS['horizon_days']
-        plots = PREDICTION_RESULTS['prediction_plots']
-        
-
-
-
-        # Preparar datos para la vista
-        prediction_summary = {
-            'total_dias': horizon_days,
-            'fecha_inicio': datetime.now().strftime('%Y-%m-%d'),
-            'fecha_fin': (datetime.now() + timedelta(days=horizon_days)).strftime('%Y-%m-%d'),
-            'num_variables': len(unified_predictions.columns),
-            'riego_promedio': round(irrigation_df['Riego_mm'].mean(), 2),
-            'riego_total': round(irrigation_df['Riego_mm'].sum(), 2),
-            'riego_maximo': round(irrigation_df['Riego_mm'].max(), 2),
-            'riego_minimo': round(irrigation_df['Riego_mm'].min(), 2)
-        }
-        
-        # Tomar las primeras 15 filas
-        table_df = irrigation_df.head(15).copy()
-
-        # Asegurarse de que 'Fecha' es datetime
-        table_df['Fecha'] = pd.to_datetime(table_df['Fecha'])
-
-        # Convertir a lista de diccionarios
-        table_data = table_df.to_dict('records')
-
-        
-        return render_template("prediction.html",
-                             plots=plots,
-                             prediction_summary=prediction_summary,
-                             table_data=table_data,
-                             show_results=True)
-        
-    except Exception as e:
-        flash(f"Error al cargar resultados: {str(e)}", "danger")
-        return redirect(url_for("main.prediccion"))
-
-@main.route("/descargar_predicciones")
-@login_required
-def descargar_predicciones():
-    """Descargar predicciones como CSV"""
-    try:
-        if 'predictions_data' not in PREDICTION_RESULTS or 'irrigation_data' not in PREDICTION_RESULTS:
-            flash("No hay datos de predicción para descargar.", "warning")
-            return redirect(url_for("main.prediccion"))
-        
-        # Recuperar datos de la sesión
-        predictions_df = pd.read_json(PREDICTION_RESULTS['predictions_data'])
-        irrigation_df = pd.read_json(PREDICTION_RESULTS['irrigation_data'])
-        horizon_days = PREDICTION_RESULTS.get('horizon_days', 30)
-        
-        # Crear un Excel con dos hojas
+        # Crear archivo en memoria
         output = io.BytesIO()
-        
+
+        # Crear Excel writer
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            predictions_df.to_excel(writer, sheet_name='Predicciones_Variables')
-            irrigation_df.to_excel(writer, sheet_name='Calculo_Riego')
-            
-            # Añadir una hoja de resumen
-            summary_df = pd.DataFrame([{
-                'Total días predichos': horizon_days,
-                'Riego total (mm)': irrigation_df['Riego_mm'].sum(),
-                'Riego promedio (mm/día)': irrigation_df['Riego_mm'].mean(),
-                'Riego máximo (mm/día)': irrigation_df['Riego_mm'].max(),
-                'Riego mínimo (mm/día)': irrigation_df['Riego_mm'].min(),
-                'Fecha generación': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }])
-            summary_df.to_excel(writer, sheet_name='Resumen', index=False)
-        
+
+            for key, value in PREDICTION_RESULTS.items():
+
+                # Solo procesar claves que contengan los datos de predicción
+                if key.startswith("predictions_data_"):
+
+                    model_name = key.replace("predictions_data_", "")
+
+                    # Convertir JSON a DataFrame
+                    df = pd.read_json(value, orient='records')
+
+                    # Nombre hoja (máx 31 caracteres en Excel)
+                    sheet_name = model_name[:31].upper()
+
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+
         output.seek(0)
-        
-        # Crear nombre de archivo
-        fecha_descarga = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"predicciones_riego_{fecha_descarga}.xlsx"
-        
-        print(f"📥 Descargando archivo: {filename}")
-        
+
+        filename = f"resultados_prediccion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
         return send_file(
             output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            download_name=filename,
             as_attachment=True,
-            download_name=filename
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        
+
     except Exception as e:
-        print(f"❌ Error al descargar: {str(e)}")
-        flash(f"Error al descargar: {str(e)}", "danger")
-        return redirect(url_for("main.prediccion"))
+        current_app.logger.error(f"Error descargando resultados: {e}")
+        return {"error": "No se pudieron descargar los resultados"}, 500
     
 
 @main.route('/api/check_trained_models')
@@ -450,7 +404,6 @@ def api_archivos_datos():
     """API para obtener archivos de datos disponibles"""
     
     uploads_dir = Path(current_app.config["UPLOAD_FOLDER"])
-    print(uploads_dir)
     data_files = []
     
     if uploads_dir.exists():

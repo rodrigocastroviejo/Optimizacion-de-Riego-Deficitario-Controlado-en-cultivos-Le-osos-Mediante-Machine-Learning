@@ -1,5 +1,4 @@
 import joblib
-from datetime import datetime, timedelta
 from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
@@ -9,12 +8,11 @@ import numpy as np
 import pandas as pd
 import base64
 import io
-import os
+from app.ml_models import SarimaModel, SarimaxModel, VarModel, LSTMModel
 
 
 MODELS_PATH = Path(__file__).resolve().parent / "models"
-UPLOAD_FOLDER = "uploads"
-
+UPLOAD_FOLDER = Path(__file__).resolve().parent.parent / "uploads"
 
 # Configuración de gráficos
 plt.style.use('seaborn-v0_8-darkgrid')
@@ -25,70 +23,10 @@ sns.set_palette("husl")
 # ====================
 
 def load_selected_models(selected_types, progress_tracker):
-    """
-    Carga únicamente los modelos especificados en la lista selected_types.
-    
-    Args:
-        selected_types (list): Lista de cadenas, ej: ["sarima", "var", "sarimax", "lstm"]
-        progress_tracker: Objeto para actualizar el progreso
-        
-    Returns:
-        dict: Diccionario con los modelos cargados {nombre: objeto_modelo}
-    """
     # Lo convertimos a lista, ya que originalmente es un string 
-    selected_types = [selected_types]
-    
-    progress_tracker.update_progress(1, f'🔍 Buscando modelos seleccionados: {", ".join(selected_types)}...')
-    
-    models = {}
-    
-    # 1. Validación del directorio
-    if not MODELS_PATH.exists():
-        progress_tracker.update_progress(1, f'❌ Directorio no encontrado: {MODELS_PATH}')
-        return models  # Devuelve solo diccionario vacío
-
-    # 2. Obtención y filtrado de archivos
-    all_files = list(MODELS_PATH.glob("*.pkl"))
-    print(all_files)
-    files_to_load = []
-    
-    for f in all_files:
-        filename = f.name.lower()
-        for prefix in selected_types:
-            # Buscamos prefijo + guion bajo (ej: "var_") para exactitud
-            if filename.startswith(f"{prefix}_"):
-                files_to_load.append(f)
-                break 
-
-    # 3. Validación de archivos encontrados
-    if not files_to_load:
-        progress_tracker.update_progress(1, '⚠️ No se encontraron archivos para los modelos seleccionados')
-        return models  # Devuelve solo diccionario vacío
-    
-    progress_tracker.update_progress(1, f'📁 Encontrados {len(files_to_load)} archivos coincidentes')
-    
-    # 4. Carga de modelos
-    for i, file_path in enumerate(files_to_load):
-        model_name = file_path.stem.replace('_model', '')
+    if isinstance(selected_types, str):
+        selected_types = [selected_types]
         
-        progress_tracker.update_progress(1, f'  📥 Cargando modelo: {model_name}', 
-                       is_substep=True, substep_total=len(files_to_load))
-        
-        try:
-            model = joblib.load(file_path)
-            models[model_name] = model
-            
-            progress_tracker.update_progress(1, f'    ✅ {model_name} cargado exitosamente',
-                           is_substep=True, substep_total=len(files_to_load))
-        except Exception as e:
-            progress_tracker.update_progress(1, f'    ❌ Error cargando {model_name}: {str(e)}',
-                           is_substep=True, substep_total=len(files_to_load))
-    
-    progress_tracker.update_progress(1, f'📊 Total modelos cargados: {len(models)}')
-    
-    return models 
-
-def load_all_models(progress_tracker):
     """Cargar modelos con actualización de progreso"""
     progress_tracker.update_progress(1, '🔍 Buscando modelos entrenados...')
     
@@ -97,8 +35,10 @@ def load_all_models(progress_tracker):
         progress_tracker.update_progress(1, f'❌ Directorio no encontrado: {MODELS_PATH}')
         return models, progress_tracker
 
-    
-    model_files = list(MODELS_PATH.glob("*.pkl"))
+    model_files = []
+    for type in selected_types:
+        model_files.extend(MODELS_PATH.glob(f"{type}_*.pkl"))
+    # model_files.extend(MODELS_PATH.iterdir())
     
     if not model_files:
         progress_tracker.update_progress(1, '❌ No se encontraron archivos .pkl')
@@ -108,7 +48,9 @@ def load_all_models(progress_tracker):
     
     progress_tracker.update_progress(1, f'📁 Encontrados {len(model_files)} archivos .pkl')
     
-    for i, file_path in enumerate(model_files):
+    for file_path in model_files:
+
+
         model_name = file_path.stem.replace('_model', '')
         progress_tracker.update_progress(1, f'  📥 Cargando modelo: {model_name}', 
                        is_substep=True, substep_total=len(model_files))
@@ -126,170 +68,203 @@ def load_all_models(progress_tracker):
     progress_tracker.update_progress(1, f'📊 Total modelos cargados: {len(models)}')
     return models
 
-def load_latest_data(progress_tracker):
-    """Cargar datos con actualización de progreso"""
+
+def load_selected_file(file_path: str, progress_tracker) -> pd.DataFrame:
+    """Cargar y preparar los datos temporales"""
+    
     progress_tracker.update_progress(2, '📂 Buscando archivos de datos...')
-    
-    data_files = list(Path(UPLOAD_FOLDER).glob("*.csv"))
-    
-    if not data_files:
-        raise FileNotFoundError("No hay archivos de datos en la carpeta uploads")
-    
-    latest_file = max(data_files, key=os.path.getctime)
-    progress_tracker.update_progress(2, f'📁 Cargando datos de: {latest_file.name}')
-    
+
+    file_path = UPLOAD_FOLDER / file_path 
+
+    # Cargar datos (ajusta según tu fuente real)
+    df = pd.read_csv(file_path, index_col='Fecha', parse_dates=True)
+
     try:
-        df = pd.read_csv(latest_file)
+        progress_tracker.update_progress(2, f'📁 Cargando datos de: {file_path}')
+
+        # Verificar que el índice es temporal y está ordenado
+        if not isinstance(df.index, pd.DatetimeIndex):
+            df.index = pd.to_datetime(df.index)
         
-        # Detectar columna de fecha
-        date_cols = [col for col in df.columns if 'fecha' in col.lower()]
-        if date_cols:
-            df['Fecha'] = pd.to_datetime(df[date_cols[0]])
-            df.set_index('Fecha', inplace=True)
-        elif 'Fecha' in df.columns:
-            df['Fecha'] = pd.to_datetime(df['Fecha'])
-            df.set_index('Fecha', inplace=True)
-        else:
-            last_date = datetime.now() - timedelta(days=len(df))
-            df['Fecha'] = pd.date_range(start=last_date, periods=len(df), freq='D')
-            df.set_index('Fecha', inplace=True)
+        df = df.sort_index()
         
-        # Mostrar información detallada
-        progress_tracker.update_progress(2, f'✅ Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas')
-        progress_tracker.update_progress(2, f'📅 Rango temporal: {df.index.min().strftime("%Y-%m-%d")} a {df.index.max().strftime("%Y-%m-%d")}')
-        progress_tracker.update_progress(2, f'📋 Columnas disponibles: {", ".join(df.columns.tolist()[:5])}...')
+        # Completar fechas faltantes si es necesario
+        full_date_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='D')
+        df = df.reindex(full_date_range)
         
+        # Interpolar valores faltantes
+        df = df.interpolate(method='time')
+
         # Mostrar primeras y últimas filas
         progress_tracker.update_progress(2, '📊 Primeras 3 filas:')
         for idx, row in df.head(3).iterrows():
-            progress_tracker.update_progress(2, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}', 
-                           is_substep=True, substep_total=3)
+            progress_tracker.update_progress(None, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}', 
+                        is_substep=True, substep_total=3)
         
         progress_tracker.update_progress(2, '📊 Últimas 3 filas:')
         for idx, row in df.tail(3).iterrows():
-            progress_tracker.update_progress(2, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}', 
-                           is_substep=True, substep_total=3)
+            progress_tracker.update_progress(None, f'  {idx.strftime("%Y-%m-%d")}: {row.to_dict()}', 
+                        is_substep=True, substep_total=3)
+            
         
-        return df
+        # Mostrar información detallada
+        progress_tracker.update_progress(2, f'✓ Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas')
+        progress_tracker.update_progress(2, f'📅 Rango temporal: {df.index.min().strftime("%Y-%m-%d")} a {df.index.max().strftime("%Y-%m-%d")}')
+        progress_tracker.update_progress(2, f'📋 Columnas disponibles: {", ".join(df.columns.tolist()[:5])}...')
 
-        
     except Exception as e:
         progress_tracker.update_progress(2, f'❌ Error cargando datos: {str(e)}')
         raise
 
-def make_predictions(models_dict, last_data, horizon_days, progress_tracker):
-    """Realizar predicciones con actualización de progreso"""
+    return df
+
+def make_future_predictions(progress_tracker, loaded_models: dict, last_available_data: pd.DataFrame, horizon: int = 45):
+    """Hacer predicciones futuras con modelos cargados"""
+    
     predictions = {}
     
-    if not models_dict:
-        progress_tracker.update_progress(3, '❌ No hay modelos cargados para hacer predicciones')
-        return predictions
+    progress_tracker.update_progress(3, f'🎯 Generando predicciones para {horizon} días')
 
-    
-    progress_tracker.update_progress(3, f'🎯 Generando predicciones para {horizon_days} días')
-    
-    # Separar modelos por tipo
-    sarima_models = {k: v for k, v in models_dict.items() if 'sarima_' in k}
-    sarimax_models = {k: v for k, v in models_dict.items() if 'sarimax_' in k}
-    var_model = models_dict.get('var_multivariate')
-    lstm_model = models_dict.get('lstm_multivariate')
-    
-    progress_tracker.update_progress(3, f'  1️⃣  📊 SARIMA: {len(sarima_models)}, SARIMAX: {len(sarimax_models)}')
-    progress_tracker.update_progress(3, f'  2️⃣  📈 VAR: {"✅" if var_model else "❌"}, LSTM: {"✅" if lstm_model else "❌"}')
-    
-    # Predicciones SARIMA
-    sarima_count = 0
-    for name, pipeline in sarima_models.items():
+
+    for name, model in loaded_models.items():
         try:
-            var_name = name.replace('sarima_', '')
-            if var_name in last_data.columns:
-                sarima_count += 1
-                progress_tracker.update_progress(3, f'  {sarima_count+2:2d} 🔮 Prediciendo SARIMA para: {var_name}')
-                
-                pred = pipeline.predict(last_data, n_periods=horizon_days)
-                
-                if hasattr(pred, 'values'):
-                    predictions[var_name] = pred.values
-                else:
-                    predictions[var_name] = np.array(pred)
-                
-                progress_tracker.update_progress(3, f'      ✅ SARIMA {var_name}: {len(predictions[var_name])} valores',
-                               is_substep=True, substep_total=len(sarima_models))
-                
+            pred = model.predict(last_available_data, n_periods=horizon)
+            predictions[name] = pred
+            progress_tracker.update_progress(3, f'✓ Predicción futura generada para {name}')
         except Exception as e:
-            progress_tracker.update_progress(3, f'      ❌ Error en SARIMA {name}: {str(e)}',
-                           is_substep=True, substep_total=len(sarima_models))
+            progress_tracker.update_progress(3, f'✗ Error en predicción para {name}: {str(e)}')
     
-    # Predicción VAR
-    if var_model:
-        progress_tracker.update_progress(3, f'  {len(sarima_models)+3:2d} 🔮 Prediciendo VAR multivariante')
-        try:
-            var_pred = var_model.predict(last_data, n_periods=horizon_days)
-            
-            for col in var_pred.columns:
-                predictions[f'VAR_{col}'] = var_pred[col].values
-            
-            progress_tracker.update_progress(3, f'      ✅ VAR: {var_pred.shape[1]} variables predichas')
-            
-        except Exception as e:
-            progress_tracker.update_progress(3, f'      ❌ Error en VAR: {str(e)}')
-    
-    # Predicción LSTM
-    if lstm_model:
-        progress_tracker.update_progress(3, f'  {len(sarima_models)+4:2d} 🔮 Prediciendo LSTM multivariante')
-        try:
-            lstm_pred = lstm_model.predict(last_data, n_periods=horizon_days)
-            
-            for col in lstm_pred.columns:
-                predictions[f'LSTM_{col}'] = lstm_pred[col].values
-            
-            progress_tracker.update_progress(3, f'      ✅ LSTM: {lstm_pred.shape[1]} variables predichas')
-            
-        except Exception as e:
-            progress_tracker.update_progress(3, f'      ❌ Error en LSTM: {str(e)}')
-    
-    progress_tracker.update_progress(3, f'🎉 Total predicciones generadas: {len(predictions)}')
     return predictions
 
 
-def unify_predictions(predictions_dict, horizon_days, progress_tracker):
+def unify_predictions(predictions_dict, progress_tracker):
     """Unificar predicciones con actualización de progreso"""
-    progress_tracker.update_progress(4, '🔄 Unificando predicciones...')
-    
-    if not predictions_dict:
-        progress_tracker.update_progress(4, '❌ No hay predicciones para unificar')
-        return pd.DataFrame()
+    progress_tracker.update_progress(4, 'Unificando predicciones...')
 
-    
-    # Mostrar qué predicciones se van a unificar
-    sarima_predictions = [k for k in predictions_dict.keys() if not k.startswith(('VAR_', 'LSTM_', 'SARIMA'))]
-    
-    progress_tracker.update_progress(4, f'📋 SARIMA predictions: {len(sarima_predictions)} variables')
-    
-    # Crear DataFrame unificado
-    future_dates = pd.date_range(
-        start=datetime.now() + timedelta(days=1),
-        periods=horizon_days,
-        freq='D'
-    )
-    
-    unified_df = pd.DataFrame(index=future_dates)
-    unified_df.index.name = 'Fecha'
-    
-    for var_name, pred_values in predictions_dict.items():
-        if len(pred_values) >= horizon_days:
-            unified_df[var_name] = pred_values[:horizon_days]
+
+    unified_predictions_dict = {
+        'sarima': None,
+        'sarimax': None,
+        'var_multivariate': None,
+        'lstm_multivariate': None
+    }
+            
+    for name, prediction_df in predictions_dict.items():  
+        if name.startswith('sarima_'):
+            unified_predictions_dict['sarima'] = pd.concat([unified_predictions_dict['sarima'], prediction_df], axis=1, join="inner")
+        
+        elif name.startswith('sarimax_'):
+            unified_predictions_dict['sarimax'] = pd.concat([unified_predictions_dict['sarimax'], prediction_df], axis=1, join="inner")
+
         else:
-            unified_df[var_name] = np.pad(
-                pred_values,
-                (0, horizon_days - len(pred_values)),
-                'edge'
-            )
+            unified_predictions_dict[f'{name}'] = prediction_df
+
+    # Eliminar aquellos modelos que no han sido predichos para evitar None posteriores
+    unified_predictions_dict = {k: v for k, v in unified_predictions_dict.items() if v is not None}
+
+    for name in unified_predictions_dict.keys():  
+        unified_predictions_dict[name].columns = ['Presión atmosférica', 'Humedad relativa mínima', 'Velocidad del viento', 'Temperatura',  'Radiación solar', 'Precipitaciones', 'Humedad relativa']
+
+
+    print(f'Unified predictions dict{unified_predictions_dict}')
+
+    progress_tracker.update_progress(4, '✓ Predicciones unificadas exitosamente')
     
-    progress_tracker.update_progress(4, f'📊 DataFrame unificado: {unified_df.shape[0]} filas × {unified_df.shape[1]} columnas')
-    progress_tracker.update_progress(4, '✅ Predicciones unificadas exitosamente')
+               
+    return unified_predictions_dict
+
+def calculate_et0_fao_penman_monteith(df):
+    """
+    Calcula la Evapotranspiración de Referencia (ET0) usando la ecuación FAO Penman-Monteith
+    """
     
-    return unified_df
+    # Obtener datos del dataframe
+    T = df['Temperatura']  # Temperatura media del aire [°C]
+    RH = df['Humedad relativa']  # Humedad relativa [%]
+    u2 = df['Velocidad del viento']  # Velocidad del viento a 2m [m/s]
+    P = df['Presión atmosférica'] * 0.1  # Convertir hPa a kPa
+    Rs = df['Radiación solar'] / 1e6  # Convertir J/m²/día a MJ/m²/día
+    
+    # 1. PRESIÓN DE VAPOR DE SATURACIÓN (es)
+    # Fórmula: es = 0.6108 * exp(17.27 * T / (T + 237.3))
+    es = 0.6108 * np.exp(17.27 * T / (T + 237.3))
+    
+    # 2. PRESIÓN DE VAPOR ACTUAL (ea)
+    # Fórmula: ea = (RH/100) * es
+    ea = es * RH / 100
+    
+    # 3. PENDIENTE DE LA CURVA DE PRESIÓN DE VAPOR (Δ)
+    # Fórmula: Δ = 4098 * es / (T + 237.3)²
+    delta = 4098 * es / (T + 237.3)**2
+    
+    # 4. CONSTANTE PSICROMÉTRICA (γ)
+    # Fórmula: γ = 0.665 × 10⁻³ * P
+    gamma = 0.665 * 1e-3 * P
+    
+    # 5. RADIACIÓN NETA (Rn) - Simplificada
+    # Fórmula: Rn = 0.77 * Rs (asumiendo albedo 0.23)
+    Rn = (1 - 0.23) * Rs
+    
+    # 6. FLUJO DE CALOR DEL SUELO (G) - Cero para periodos diarios
+    G = 0
+    
+    # 7. ECUACIÓN FAO PENMAN-MONTEITH COMPLETA
+    # Fórmula: 
+    # ET0 = [0.408 * Δ * (Rn - G) + γ * (900/(T + 273)) * u2 * (es - ea)] / 
+    #        [Δ + γ * (1 + 0.34 * u2)]
+    
+    numerador = (0.408 * delta * (Rn - G) + 
+                gamma * (900 / (T + 273)) * u2 * (es - ea))
+    
+    denominador = delta + gamma * (1 + 0.34 * u2)
+    
+    et0 = numerador / denominador
+    
+    return et0
+
+def calcular_Kc(dia , progress_tracker):
+
+    kc_ini = 0.4
+    kc_mid = 0.9
+    kc_end = 0.65
+
+        # Duración de las etapas (días)
+    L_ini = 15    # Etapa inicial
+    L_dev = 50    # Etapa de desarrollo  
+    L_mid = 98    # Etapa de mediados
+    L_late = 31   # Etapa final
+
+    # Puntos de transición entre etapas
+    dia_fin_ini = L_ini
+    dia_fin_dev = L_ini + L_dev
+    dia_fin_mid = L_ini + L_dev + L_mid
+    dia_fin_late = L_ini + L_dev + L_mid + L_late
+
+    if dia <= dia_fin_ini:
+        # Etapa inicial: Kc constante
+        return kc_ini
+    elif dia <= dia_fin_dev:
+        # Etapa desarrollo: línea diagonal ascendente
+        progreso = (dia - dia_fin_ini) / L_dev
+        return kc_ini + progreso * (kc_mid - kc_ini)
+    elif dia <= dia_fin_mid:
+        # Etapa mediados: Kc constante
+        return kc_mid
+    elif dia <= dia_fin_late:
+        # Etapa final: línea diagonal descendente
+        progreso = (dia - dia_fin_mid) / L_late
+        return kc_mid + progreso * (kc_end - kc_mid)
+    else:
+        return kc_end
+    
+
+# Calcular ETc para un día específico 
+def calcular_ETc(dia, ETo, progress_tracker):
+    """Calcula ETc para un día específico dado ETo"""
+    kc = calcular_Kc(dia, progress_tracker)
+    return kc * ETo
+
+
 
 
 def calculate_irrigation(predictions_df, progress_tracker):
@@ -298,68 +273,61 @@ def calculate_irrigation(predictions_df, progress_tracker):
     
     if predictions_df.empty:
         progress_tracker.update_progress(5, '❌ No hay datos para calcular riego')
-        return pd.DataFrame()
+        raise FileNotFoundError("No hay datos para calcular riego")
 
+    # Aplicar al dataframe
+    predictions_df['ET0'] = calculate_et0_fao_penman_monteith(predictions_df)
+
+    # Necesario para que el indice se DateTmeIndex y podamos usar .dayofyear
+    predictions_df.index = pd.to_datetime(predictions_df.index)
+
+    predictions_df["dia"] = predictions_df.index.dayofyear
+
+    predictions_df["ETc"] = predictions_df.apply(lambda fila: calcular_ETc(fila["dia"], fila["ET0"], progress_tracker), axis=1)
+
+    # --- Configuración de parámetros ---
+    EFICIENCIA_RIEGO = 0.95  # Ajustar según sistema (0.95 para goteo)
+    COEF_PRECIPITACION = 0.75 # Porcentaje de lluvia aprovechable (75%)
+
+    # Definimos la Precipitación Efectiva (Pe)
+    # Se suele considerar efectiva si la lluvia supera un umbral mínimo (3 mm), como indica la FAO-56
+    def calcular_pe(precipitacion):
+        if precipitacion > 3:
+            return precipitacion * COEF_PRECIPITACION
+        return 0
+
+    predictions_df["Pe"] = predictions_df["Precipitaciones"].apply(calcular_pe)
+
+    # Calculamos Necesidades Netas (NN = ETc - Pe)
+    predictions_df["NN"] = (predictions_df["ETc"] - predictions_df["Pe"]).clip(lower=0)
+
+    # Calculamos Necesidades Brutas (NB = NN / Eficiencia)
+    predictions_df["NB"] = predictions_df["NN"] / EFICIENCIA_RIEGO
+
+    # Visualizar resultados
+    print(predictions_df[["Precipitaciones", "ETc", "Pe", "NN", "NB"]].head())
+
+    # Calculamos ETc_RDC y lo aplicamos al dataframe en su propia columna
+    predictions_df["ETc_RDC"] = predictions_df.apply(lambda fila: calcular_ETc(fila["dia"], fila["ET0"], progress_tracker) * 0.2, axis=1)
+
+    # Calculamos Necesidades Netas (NN = ETc - Pe)
+    predictions_df["NN_RDC"] = (predictions_df["ETc_RDC"] - predictions_df["Pe"]).clip(lower=0)
+
+    # Calculamos Necesidades Brutas (NB = NN / Eficiencia)
+    predictions_df["NB_RDC"] = predictions_df["NN_RDC"] / EFICIENCIA_RIEGO
+
+    # Visualizar resultados
+    print(predictions_df[["Precipitaciones", "ETc_RDC", "Pe", "NN_RDC", "NB_RDC"]].head())
     
-    # Mostrar fórmula de cálculo
-    progress_tracker.update_progress(5, '📐 Fórmula aplicada:')
-    progress_tracker.update_progress(5, '  ET₀ = 0.0023 × (Tmean + 17.8) × Radiación × 0.0864')
-    progress_tracker.update_progress(5, '  Riego = max(0, ET₀ × Kc × factor_humedad + ajuste_precipitación)')
-    progress_tracker.update_progress(5, '  Donde: Kc = 0.8, factor_humedad = max(0.7, 1 - (humedad - 60)/100)')
+    progress_tracker.update_progress(5, f'💦 Cálculo completado: {len(predictions_df)} días')
+    progress_tracker.update_progress(5, f'📈 Riego total: {predictions_df["NB"].sum():.2f} mm')
+    progress_tracker.update_progress(5, f'📈 Riego total con RDC: {predictions_df["NB_RDC"].sum():.2f} mm')
+    progress_tracker.update_progress(5, f'📊 Riego promedio con RDC: {predictions_df["NB_RDC"].mean():.2f} mm/día')
     
-    irrigation_data = []
-    
-    # Calcular para cada día
-    total_days = len(predictions_df)
-    for idx, row in predictions_df.iterrows():
-        # Buscar variables
-        temp_key = next((col for col in predictions_df.columns 
-                        if 'temperatura' in col.lower()), None)
-        precip_key = next((col for col in predictions_df.columns 
-                          if 'precipitacion' in col.lower()), None)
-        humidity_key = next((col for col in predictions_df.columns 
-                           if 'humedad' in col.lower()), None)
-        radiation_key = next((col for col in predictions_df.columns 
-                            if 'radiacion' in col.lower()), None)
-        
-        # Valores
-        temp = row[temp_key] if temp_key else 20.0
-        precip = row[precip_key] if precip_key else 0.0
-        humidity = row[humidity_key] if humidity_key else 60.0
-        radiation = row[radiation_key] if radiation_key else 5.0
-        
-        # Cálculo
-        et0 = 0.0023 * (temp + 17.8) * radiation * 0.0864
-        kc = 0.8
-        humidity_factor = max(0.7, 1 - (humidity - 60) / 100)
-        precip_adjustment = -min(precip, 5)
-        irrigation_needs = max(0, et0 * kc * humidity_factor + precip_adjustment)
-        
-        irrigation_data.append({
-            'Fecha': idx,
-            'Riego_mm': round(irrigation_needs, 2),
-            'Temperatura_estimada': round(temp, 1),
-            'Precipitacion_estimada': round(precip, 1),
-            'Humedad_estimada': round(humidity, 1),
-            'Radiacion_estimada': round(radiation, 1),
-            'ET0_estimada': round(et0, 2)
-        })
-        
-        # Actualizar progreso cada 10 días
-        if len(irrigation_data) % max(1, total_days//10) == 0:
-            progress_pct = (len(irrigation_data) / total_days) * 100
-            progress_tracker.update_progress(5, f'  📅 Día {len(irrigation_data)}/{total_days} ({progress_pct:.0f}%)',
-                           is_substep=True, substep_total=total_days)
-    
-    irrigation_df = pd.DataFrame(irrigation_data)
-    progress_tracker.update_progress(5, f'💦 Cálculo completado: {len(irrigation_df)} días')
-    progress_tracker.update_progress(5, f'📈 Riego total: {irrigation_df["Riego_mm"].sum():.2f} mm')
-    progress_tracker.update_progress(5, f'📊 Riego promedio: {irrigation_df["Riego_mm"].mean():.2f} mm/día')
-    
-    return irrigation_df
+    return predictions_df
 
 
-def create_prediction_plots(predictions_df, irrigation_df, progress_tracker):
+def create_prediction_plots(predictions_df, progress_tracker):
     """Crear gráficos con actualización de progreso"""
     progress_tracker.update_progress(6, '🎨 Generando visualizaciones...')
     
@@ -369,9 +337,9 @@ def create_prediction_plots(predictions_df, irrigation_df, progress_tracker):
     progress_tracker.update_progress(6, '📊 Creando gráfico de riego...', is_substep=True, substep_total=3)
     try:
         fig1, ax1 = plt.subplots(figsize=(12, 6))
-        ax1.plot(irrigation_df['Fecha'], irrigation_df['Riego_mm'], 
+        ax1.plot(predictions_df.index, predictions_df['NB'], 
                 color='blue', linewidth=2, marker='o', markersize=4)
-        ax1.fill_between(irrigation_df['Fecha'], 0, irrigation_df['Riego_mm'], 
+        ax1.fill_between(predictions_df.index, 0, predictions_df['NB'], 
                         alpha=0.3, color='lightblue')
         ax1.set_title('Necesidad de Riego Predicha', fontsize=14, fontweight='bold')
         ax1.set_xlabel('Fecha')
@@ -393,8 +361,8 @@ def create_prediction_plots(predictions_df, irrigation_df, progress_tracker):
     progress_tracker.update_progress(6, '📈 Creando gráfico de variables...', is_substep=True, substep_total=3)
     try:
         main_vars = []
-        for var in ['temperatura', 'humedad', 'precipitacion', 'radiacion']:
-            matching = [col for col in predictions_df.columns if var in col.lower()]
+        for var in ['Temperatura', 'Humedad relativa', 'Precipitaciones', 'ETc']:
+            matching = [col for col in predictions_df.columns if var in col]
             if matching:
                 main_vars.append(matching[0])
         
@@ -406,6 +374,8 @@ def create_prediction_plots(predictions_df, irrigation_df, progress_tracker):
                 ax = axes[i]
                 ax.plot(predictions_df.index, predictions_df[var], 
                        linewidth=2, alpha=0.7)
+                if var == 'ETc':
+                    ax.set_title(f'Cálculo: {var}')
                 ax.set_title(f'Predicción: {var}')
                 ax.set_xlabel('Fecha')
                 ax.set_ylabel(var)

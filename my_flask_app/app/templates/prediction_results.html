@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados de Predicción{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold">📊 Resultados de Predicción</h2>
+        <p class="text-muted mb-0">Visualización de modelos entrenados</p>
+    </div>
+
+    <!-- Botón descarga -->
+    <a href="{{ url_for('main.descargar_resultados') }}" 
+       class="btn btn-success shadow-sm">
+        <i class="bi bi-download"></i> Descargar resultados
+    </a>
+</div>
+
+<!-- Contenedor dinámico donde se insertarán los modelos -->
+<div id="resultsContainer"></div>
+
+<!-- Spinner de carga -->
+<div id="loadingSpinner" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-3">Cargando resultados...</p>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+    fetchPredictionResults();
+});
+
+
+// ===============================
+// Obtener resultados desde Flask
+// ===============================
+async function fetchPredictionResults() {
+    try {
+        const response = await fetch('/api/prediccion_resultados');
+        if (!response.ok) throw new Error("Error obteniendo resultados");
+
+        const data = await response.json();
+        renderResults(data);
+
+    } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("resultsContainer").innerHTML =
+            `<div class="alert alert-danger">❌ No se pudieron cargar los resultados</div>`;
+    } finally {
+        document.getElementById("loadingSpinner").style.display = "none";
+    }
+}
+
+
+// ===============================
+// Render principal
+// ===============================
+function renderResults(data) {
+
+    const container = document.getElementById("resultsContainer");
+    container.innerHTML = "";
+
+    const plots = data.prediction_plots || {};
+    const horizon = data.horizon_days || "";
+
+    Object.keys(plots).forEach(modelName => {
+
+        const modelPlots = plots[modelName];
+
+        const predictionsKey = `predictions_data_${modelName}`;
+        const jsonData = data[predictionsKey];
+
+        if (!jsonData) return;
+
+        const df = JSON.parse(jsonData);
+
+        const modelCard = document.createElement("div");
+        modelCard.className = "card shadow-sm mb-5";
+
+        modelCard.innerHTML = `
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0 text-uppercase">${modelName}</h4>
+                <small>Horizonte: ${horizon} días</small>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    ${renderPlots(modelPlots)}
+                </div>
+                <div class="row">
+                    ${renderTables(df)}
+                </div>
+            </div>
+        `;
+
+        container.appendChild(modelCard);
+    });
+}
+
+
+// ===============================
+// Render gráficos
+// ===============================
+function renderPlots(modelPlots) {
+
+    let html = "";
+
+    // Gráfico riego
+    if (modelPlots.riego) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <h5 class="fw-semibold">💧 Necesidad de Riego</h5>
+                <img class="img-fluid rounded shadow-sm"
+                     src="data:image/png;base64,${modelPlots.riego}" />
+            </div>
+        `;
+    }
+
+    // Gráfico variables
+    if (modelPlots.variables) {
+        html += `
+            <div class="col-md-6 mb-4">
+                <h5 class="fw-semibold">📈 Variables Predichas</h5>
+                <img class="img-fluid rounded shadow-sm"
+                     src="data:image/png;base64,${modelPlots.variables}" />
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+
+// ===============================
+// Render tablas (primeras 5 + últimas 5)
+// ===============================
+function renderTables(df) {
+
+    const first5 = df.slice(0, 5);
+    const last5 = df.slice(-5);
+
+    return `
+        <div class="col-md-6">
+            <h6 class="fw-bold">Primeras 5 filas</h6>
+            ${generateTable(first5)}
+        </div>
+        <div class="col-md-6">
+            <h6 class="fw-bold">Últimas 5 filas</h6>
+            ${generateTable(last5)}
+        </div>
+    `;
+}
+
+
+// ===============================
+// Generador tabla dinámica
+// ===============================
+function generateTable(rows) {
+
+    if (!rows || rows.length === 0) return "<p>No hay datos</p>";
+
+    const headers = Object.keys(rows[0]);
+
+    let table = `
+        <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    ${headers.map(h => `<th>${h}</th>`).join("")}
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    rows.forEach(row => {
+        table += `
+            <tr>
+                ${headers.map(h => `<td>${formatCell(row[h])}</td>`).join("")}
+            </tr>
+        `;
+    });
+
+    table += `
+            </tbody>
+        </table>
+        </div>
+    `;
+
+    return table;
+}
+
+
+// ===============================
+// Formateo celdas
+// ===============================
+function formatCell(value) {
+    if (typeof value === "number") {
+        return value.toFixed(3);
+    }
+    return value;
+}
+
+</script>
+
+{% endblock %}

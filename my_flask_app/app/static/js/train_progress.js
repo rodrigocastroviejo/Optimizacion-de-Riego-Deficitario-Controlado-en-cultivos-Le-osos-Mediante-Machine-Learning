@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para actualizar la UI con los datos de progreso
     function updateProgressUI(data) {
         // Actualizar porcentaje
-        const percentage = ((data.current_step / data.total_steps) * 100 ).toFixed(2);
+        const percentage = ((data.current_step / data.total_steps) * 100 ).toFixed(0);
         percentageElement.textContent = `${percentage}%`;
         donutPercentage.textContent = `${percentage}%`;
         

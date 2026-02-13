@@ -49,6 +49,7 @@ $(document).ready(function() {
         $(this).addClass('selected');
         
         selectedFile = $(this).data('filename');
+        
         // Extraer el número de filas desde el atributo data que insertaremos en el render
         currentFileRows = parseInt($(this).data('rows'));
         

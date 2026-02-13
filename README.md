@@ -14,7 +14,7 @@ El proyecto está dividido en **dos partes independientes**, que no dependen ent
 
 ---
 
-## 📘 Parte 1 — Análisis de Datos y Predicción de Riego (Jupyter Notebook)
+## Parte 1 — Análisis de Datos y Predicción de Riego (Jupyter Notebook)
 
 Esta parte del proyecto ha sido desarrollada en **Jupyter Notebook** y está enfocada en el análisis y la predicción de las necesidades de riego en un cultivo de almendro.
 
@@ -22,8 +22,6 @@ Esta parte del proyecto ha sido desarrollada en **Jupyter Notebook** y está enf
 
 El trabajo se basa en **datos reales de 2–3 años**, procedentes de:
 - Sensores de suelo
-- Datos de precipitaciones
-- Radiación solar
 - Condiciones climáticas (temperatura, humedad, etc.)
 
 ### Proceso realizado
@@ -48,7 +46,7 @@ Esta parte del proyecto es **totalmente independiente** y puede ejecutarse por s
 
 ---
 
-## 🌐 Parte 2 — Aplicación Web para Entrenamiento y Predicción
+## Parte 2 — Aplicación Web para Entrenamiento y Predicción
 
 La segunda parte del proyecto consiste en una **aplicación web** que traslada todo el trabajo analítico a una **interfaz accesible para el usuario**.
 
@@ -63,42 +61,10 @@ A través de la aplicación web, un usuario puede:
 
 La aplicación web **no depende del notebook para su ejecución**, aunque está construida a partir de los mismos enfoques, modelos y técnicas.
 
----
-
-## 🧰 Requisitos
-
-### Generales
-- **Git** (para clonar el repositorio, no 100% necesario)
-- **Docker** 
-- **Python 3.10 o superior**
-
-### ⚠️ Requisito importante de memoria
-La configuración del proyecto en Docker está pensada para **cargas de trabajo intensivas en memoria**, especialmente durante el entrenamiento de modelos.
-
-➡️ Es **imprescindible** permitir que Docker pueda asignar **al menos 10–12 GB de RAM** a los contenedores desde la configuración de Docker en el sistema anfitrión.  
-En caso contrario, el entrenamiento de modelos puede fallar.
 
 ---
 
-### Requisitos para Jupyter Notebook
-Para ejecutar el notebook es necesario:
-
-Instalación local: 
-
-- Python 3.10+ (se recomienda, puede funcionar con versiones anteriores)
-- pip
-- Para visualizar/ejecutar el notebook tienes varias opciones:
-  - Jupyter Notebook/Lab
-  - Extension de Jupyter para VS Code
-
-  
- **Recomendación:**
-**Usar google collab, sin necesidad de ninguna instalación.**
-
-
----
-
-## 🧪 Stack Tecnológico
+## Stack Tecnológico
 
 
 | Componente                | Tecnologías                                                                 |
@@ -114,31 +80,123 @@ Instalación local:
 
 ---
 
+## Guía de Ejecución y Despliegue
+[!CAUTION]
+**Advertencia sobre el almacenamiento:** El repositorio no incluye los modelos preentrenados por defecto. Tras el entrenamiento, el peso del proyecto puede superar los 25GB. Sin estos modelos, el peso es inferior a 100MB.
 
-## ▶️ Cómo usar el proyecto
+### Parte 1: Jupyter Notebook (Análisis y Modelado)
+Este componente permite la experimentación, el entrenamiento intensivo y el análisis EDA de forma independiente.
 
-### 1️⃣ Clonar el repositorio
-```bash
-git clone https://github.com/rodrigocastroviejo/Edge-Computing-para-Riego-Deficitario-en-Almendros.git
-cd Edge-Computing-para-Riego-Deficitario-en-Almendros
+#### A. Ejecución en la Nube (Ready-to-use)
+Si no deseas configurar un entorno local, puedes acceder a la versión desplegada:
+
+🌐 Enlace servidor web Jupyter notebook: https://jupyter-notebook.optimizacion-riego-deficitario-controlado-almendro.org
+
+#### B. Ejecución Local (Recomendado para entrenamiento)
+Ideal si dispones de hardware potente (GPU) para acelerar las predicciones y re-entrenamientos.
+
+##### Requisitos: 
+Tener instalado el Kernel de Jupyter mediante Anaconda o la extensión de VS Code.
+##### Preparación: 
+Asegúrate de que la carpeta raíz o la carpeta model estén íntegras (el archivo EDA.ipynb depende de loader.py).
+##### Ejecución: 
+Abre model/EDA.ipynb y selecciona "Ejecutar todo".
+
+Nota: Tiempos de 30 minutos o más son normales debido a la carga computacional.
+
+#### C. Ejecución Local mediante Docker
+
+Para levantar el entorno sin configurar dependencias de Python
+
+
+Una vez dentro de la carpeta raiz del repositorio clonado de GitHub:
+
+```Bash
+cd model 
 ```
-## 2️⃣ Ejecutar la aplicación web
 
-Acceder a la carpeta de la aplicación Flask:
-```bash
-cd myflaskapp
-```
-Construir y levantar los servicios:
-
-```bash
+```Bash
 docker-compose up -d
 ```
 
-Una vez Docker haya construido y levantado los contenedores, la aplicación estará disponible en:
+📍 Acceso: http://localhost:8888
 
-```bash
-http://localhost:5000
+### Parte 2: Aplicación Web (Interfaz de Usuario)
+
+
+#### A. Ejecución en el servidor
+
+Accede directamente a la aplicación operativa:
+
+🌐 Enlace: https://dash.optimizacion-riego-deficitario-controlado-almendro.org
+
+#### B. Ejecución Local con Docker
+
+##### Requisitos: 
+Docker Desktop en funcionamiento y un navegador actualizado.
+
+##### Configuración de Memoria:
+
+ Es imprescindible asignar al menos 10–12 GB de RAM a Docker en la configuración de tu sistema anfitrión para evitar fallos en el entrenamiento.
+
+##### Despliegue:
+
+```Bash
+cd myflaskapp
 ```
+
+```Bash
+docker-compose up -d
+```
+
+📍 Acceso: http://localhost:5000
+
+### 🛠️ Mantenimiento y Depuración
+#### Reseteo de la Base de Datos
+
+Si necesitas limpiar el entorno y reiniciar la estructura de datos desde cero, sigue estos pasos:
+
+##### Eliminar volúmenes de Docker:
+
+Detén los servicios y elimina los volúmenes persistentes de PostgreSQL:
+
+```Bash
+docker-compose down -v
+```
+
+##### Generar nueva migración (Flask-Migrate):
+
+##### Acceder al contenedor de la app
+
+```Bash
+docker exec -it <nombre_contenedor_flask> bash
+```
+
+##### Ejecutar comandos de migración
+
+```Bash
+flask db init  # Solo si no existe la carpeta migrations
+flask db migrate -m "Reinicio de tablas"
+flask db upgrade
+```
+
+#### Visualización de Logs (Debugging)
+
+##### Identifica el nombre del contenedor:
+
+```Bash
+docker ps
+```
+
+##### Visualiza los registros:
+
+```Bash
+docker logs -f <nombre_del_contenedor_backend>
+```
+
+
+
+
 📄 Licencia
 
 Este proyecto está bajo licencia MIT - ver LICENSE para más detalles.
@@ -148,3 +206,4 @@ Este proyecto está bajo licencia MIT - ver LICENSE para más detalles.
 Carlos Cambra - carlos.cambra@ubu.es
 Antonia Maiara Marques Do Nascimiento - ammarquesdo@ubu.es
 Proyecto vinculado al Grupo de Investigación XYZ
+

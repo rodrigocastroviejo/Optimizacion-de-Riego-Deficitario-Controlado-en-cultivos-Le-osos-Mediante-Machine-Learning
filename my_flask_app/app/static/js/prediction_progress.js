@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para actualizar la UI con los datos de progreso
     function updateProgressUI(data) {
         // Actualizar porcentaje
-        const percentage = ((data.current_step / data.total_steps) * 100 ).toFixed(2);
+        const percentage = ((data.current_step / data.total_steps) * 100 ).toFixed(0);
         percentageElement.textContent = `${percentage}%`;
         donutPercentage.textContent = `${percentage}%`;
         
@@ -205,8 +205,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <span class="${typeClass}">[${timestamp}] ${prefix}</span> ${message}
         `;
         
-        // Obtenemos todos los mensajes actuales dentro del output
-        const existingMessages = Array.from(consoleOutput.children);
 
 
         const isDuplicate = Array.from(consoleOutput.children).some(line => {
